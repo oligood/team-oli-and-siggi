@@ -1,3 +1,0 @@
-- Git Vinnulag: Halda commits litlum og einangruðum. Einn fídus = eitt commit. 
-- Claude Code: Les þessar .md skrár til að fá samhengi þegar flóknari kóðun hefst.
-- Mikilvægt: LLM má aldrei giska á hagtölur. Ef API kall mistekst á spjallmennið að biðjast afsökunar frekar en að ofskynja (hallucinate) tölugildi.
