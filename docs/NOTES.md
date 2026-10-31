@@ -1,3 +1,2 @@
 - Git Workflow: Keep commits small and isolated. One feature = one commit.
-- AI Coding Assistants: Read these `.md` files to get context as coding begins.
-- Important Rule: The LLM must NEVER guess or make up statistics. If an API call fails, the chatbot must apologize rather than hallucinate numbers.
+- Important: The LLM must never guess statistics. If an API call fails, the chatbot should apologize rather than hallucinate numbers.

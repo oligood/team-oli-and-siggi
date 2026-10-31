@@ -1,13 +1,13 @@
 Óli (API & Frontend - Desktop)
-- [ ] Set up the basic Streamlit frontend interface (`app.py` / `frontend.py`).
-- [ ] Write a Python function to send a test POST request to the PX-Web API.
-- [ ] Create functionality that takes the JSON response from the API and makes it readable.
+- [x] Set up the basic Streamlit frontend interface (`ui.py`).
+- [x] Write a Python function to send a test POST request to the PX-Web API (`px_api.py`).
+- [x] Create functionality that takes the JSON response from the API and makes it readable (`px_api.py`).
 
 Siggi (RAG & Vector Database - CLI)
-- [ ] Set up a simple vector database (ChromaDB or FAISS).
-- [ ] Fetch table metadata and insert it into the database (`ingest.py`).
-- [ ] Connect an embedding model and test search functionality.
+- [x] Set up a simple vector database (`ingest.py`).
+- [x] Fetch table metadata and insert it into the database (`ingest.py`).
+- [x] Connect an embedding model and test search functionality (`search.py`).
 
 Shared / Together
-- [ ] Connect the RAG search engine with the API call functionality.
-- [ ] Move/deploy the system over to NVIDIA DGX Spark (if needed).
+- [x] Connect the RAG search engine with the API call functionality (`backend.py`).
+- [ ] Move/deploy the system over to NVIDIA DGX Spark.
