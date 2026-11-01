@@ -1,6 +1,7 @@
 import os
 import re
 import unicodedata
+from datetime import date
 from ingest import CHROMA_DIR, COLLECTION_NAME, TABLES
 
 _model = None
@@ -13,6 +14,8 @@ OUT_OF_SCOPE_PATTERNS = [
     r"\bstyrivext", r"\bstyrivaxt", r"\bvextir\b", r"\bvexti\b", r"\bsedlabank",
     r"\bfasteignamat", r"\bfasteignaverd", r"\bibudaverd",
     r"\bweather\b", r"\btemperature\b", r"\binterest rate", r"\bcentral bank", r"\bproperty value", r"\bhouse price",
+    # Forecasts: Hagstofa publishes measurements, not predictions
+    r"\bverdur\b", r"\bspa(in|r)?\b", r"\bforecast", r"\bwill be\b", r"\bpredict",
 ]
 
 # Gömul, sameinuð eða óformleg staðarheiti -> sveitarfélag eins og það heitir í MAN02005.
@@ -39,6 +42,8 @@ MUNICIPALITY_ALIASES = {
     r"\bselfoss": "Sveitarfélagið Árborg", r"\beyrarbakk": "Sveitarfélagið Árborg", r"\bstokkseyr": "Sveitarfélagið Árborg",
     r"\bhveragerd": "Hveragerðisbær", r"\bthorlakshofn": "Sveitarfélagið Ölfus",
     r"\bhvolsvoll": "Rangárþing eystra", r"\bhella\b": "Rangárþing ytra",
+    r"\bvik i myrdal": "Mýrdalshreppur", r"\bmyrdalshrepp": "Mýrdalshreppur",
+    r"\bwestman": "Vestmannaeyjabær", r"\bheimaey": "Vestmannaeyjabær",
 }
 
 # "Reykjavík í heild, ekki bara Breiðholt" á að fara í sveitarfélagatöfluna, ekki hverfatöfluna
@@ -53,6 +58,7 @@ CURRENT_MUNICIPALITY_PATTERNS = {
     r"\bmulathing", r"\bsudurnesjab", r"\breykjanesb", r"\bgrindavik", r"\bvog(ar|um)\b", r"\bkopavog",
     r"\bhafnar(fj|fir)", r"\bgardab", r"\bmosfellsb", r"\bseltjarnarnes", r"\bakranes", r"\bborgarbyggd",
     r"\bisa(fj|fir)", r"\bakureyr", r"\bdalvik", r"\bhorna(fj|fir)", r"\bvestmannaey", r"\bhveragerd",
+    r"\bmyrdalshrepp", r"\bwestman",
 }
 
 
@@ -62,6 +68,23 @@ def resolve_municipality(normalized_question: str) -> str | None:
         if re.search(pattern, normalized_question):
             return name
     return None
+
+
+def resolve_municipalities(normalized_question: str) -> list:
+    """Öll sveitarfélög sem spurningin nefnir, í þeirri röð sem þau koma fyrir (fyrir samanburð)."""
+    # Reykjavík is left out of MUNICIPALITY_ALIASES so it doesn't pull district questions away from
+    # MAN03270 in routing, but once MAN02005 is chosen it is a municipality like any other
+    patterns = {**MUNICIPALITY_ALIASES, r"\breykjavik": "Reykjavíkurborg"}
+    hits = []
+    for pattern, name in patterns.items():
+        m = re.search(pattern, normalized_question)
+        if m:
+            hits.append((m.start(), name))
+    names = []
+    for _, name in sorted(hits):
+        if name not in names:
+            names.append(name)
+    return names
 
 
 def is_part_of_larger_municipality(normalized_question: str) -> bool:
@@ -98,8 +121,10 @@ def _get_collection():
 def find_best_table(question: str) -> dict:
     q = normalize(question)
 
-    # 0. Out of scope (weather, interest rates, property valuation) - reject before place names are seen
+    # 0. Out of scope (weather, interest rates, property valuation, forecasts) - reject before place names are seen
     if any(re.search(p, q) for p in OUT_OF_SCOPE_PATTERNS):
+        return None
+    if any(int(y) > date.today().year for y in re.findall(r"\b(20\d{2})\b", q)):
         return None
 
     # 1. Wage Index (check before generic 'visitala')

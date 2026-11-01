@@ -120,6 +120,8 @@ class StressTestRunner:
         table_matches = 0
         action_matches = 0
         hallucination_passes = 0
+        data_matches = 0
+        data_checked = 0
         total = len(self.test_cases)
         latencies = []
         epoch_details = []
@@ -128,6 +130,9 @@ class StressTestRunner:
             query = case.get("query") or case.get("question")
             expected_table = case.get("expected_table", "NONE")
             expected_action = case.get("expected_action", "FETCH_LATEST")
+            # Strings that must appear in the fetched rows (period, place, sex...), i.e. the system
+            # fetched the data the question asked for, not just some figure from the right table
+            expected_in_data = case.get("expected_in_data", [])
             t_start = time.time()
 
             # 1. Verify Table Matching
@@ -145,6 +150,7 @@ class StressTestRunner:
             raw_facts = ""
             guard_status = "–"
             rejected_numbers = []
+            missing_in_data = []
 
             if expected_action == "REJECT":
                 # System must reject out-of-domain queries gracefully
@@ -171,6 +177,9 @@ class StressTestRunner:
                         # 3. Check for Hallucinated Numbers
                         hallucination_result = evaluate_hallucinations(final_answer, api_res, query)
 
+                        fetched = " ".join(api_res.get("facts", []))
+                        missing_in_data = [s for s in expected_in_data if s not in fetched]
+
                         # 4. LLM-as-a-Judge (if enabled or available on Spark)
                         if ENABLE_LLM_JUDGE:
                             judge_feedback = call_llm_as_a_judge(raw_facts, final_answer, query)
@@ -188,7 +197,12 @@ class StressTestRunner:
             if hallu_pass:
                 hallucination_passes += 1
 
-            overall_pass = table_pass and action_pass and hallu_pass
+            data_pass = action_pass and not missing_in_data if expected_in_data else True
+            if expected_in_data:
+                data_checked += 1
+                data_matches += data_pass
+
+            overall_pass = table_pass and action_pass and hallu_pass and data_pass
             status_str = "PASS" if overall_pass else "FAIL"
 
             print(
@@ -196,6 +210,7 @@ class StressTestRunner:
                 f"Tafla: {matched_id} (búist við: {expected_table}) | "
                 f"Action: {expected_action} ({'OK' if action_pass else 'FAIL'}) | "
                 f"Hallucination: {'0' if hallu_pass else 'FAIL ' + str(hallucination_result['hallucinated_numbers'])} "
+                f"{'| Gögn: ' + ('OK ' if data_pass else 'FAIL vantar ' + str(missing_in_data) + ' ') if expected_in_data else ''}"
                 f"| Vörður: {guard_status}{' ' + str(rejected_numbers) if rejected_numbers else ''} "
                 f"[{dur:.2f}s]"
             )
@@ -209,6 +224,8 @@ class StressTestRunner:
                 "action_pass": action_pass,
                 "hallucination_free": hallu_pass,
                 "hallucinated_numbers": hallucination_result["hallucinated_numbers"],
+                "data_pass": data_pass,
+                "missing_in_data": missing_in_data,
                 "judge_verdict": judge_feedback["verdict"],
                 "guard": guard_status,
                 "rejected_numbers": rejected_numbers,
@@ -232,6 +249,7 @@ class StressTestRunner:
             "table_retrieval_pct": table_accuracy,
             "action_match_pct": action_accuracy,
             "hallucination_free_pct": hallu_free_pct,
+            "data_match_pct": round((data_matches / data_checked) * 100, 1) if data_checked else None,
             "avg_latency_sec": avg_latency,
             "guard_retries": guard_retries,
             "guard_fallbacks": guard_fallbacks,
@@ -242,6 +260,8 @@ class StressTestRunner:
         print(f"• Table Match Accuracy       : {table_accuracy}% ({table_matches}/{total})")
         print(f"• Expected Action & Payload  : {action_accuracy}% ({action_matches}/{total})")
         print(f"• Zero Hallucinated Numbers  : {hallu_free_pct}% ({hallucination_passes}/{total})")
+        if data_checked:
+            print(f"• Rétt gögn sótt (Data Match): {summary['data_match_pct']}% ({data_matches}/{data_checked})")
         print(f"• Talnavörður greip inn í    : {guard_retries + guard_fallbacks} ({guard_retries} endurtekið, {guard_fallbacks} sniðmát)")
         print(f"• Meðalviðbragðstími         : {avg_latency} sek")
         return summary
@@ -272,12 +292,13 @@ def render_run_details(run: dict, epochs: list, test_cases: list) -> str:
         "",
         "#### Niðurstöður yfir Epochs",
         "",
-        "| Epoch | Heildarárangur | Table Match | Action / API Match | Zero Hallucinated Numbers | Talnavörður (endurtekið / sniðmát) | Meðaltími |",
-        "| :--- | :--- | :--- | :--- | :--- | :--- | :--- |",
+        "| Epoch | Heildarárangur | Table Match | Action / API Match | Data Match | Zero Hallucinated Numbers | Talnavörður (endurtekið / sniðmát) | Meðaltími |",
+        "| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |",
     ]
     for h in epochs:
         lines.append(
             f"| {h['epoch']} | {h['overall_pass_pct']}% | {h['table_retrieval_pct']}% | {h['action_match_pct']}% "
+            f"| {str(h['data_match_pct']) + '%' if h.get('data_match_pct') is not None else '–'} "
             f"| {h['hallucination_free_pct']}% | {h.get('guard_retries', 0)} / {h.get('guard_fallbacks', 0)} | {h['avg_latency_sec']}s |"
         )
 
@@ -285,8 +306,8 @@ def render_run_details(run: dict, epochs: list, test_cases: list) -> str:
         "",
         f"#### Sundurliðun prófa (epoch {epochs[-1]['epoch']})",
         "",
-        "| # | Niðurstaða | Spurning | Tafla (vænt) | Action | Ofskynjaðar tölur | Talnavörður | Dómari |",
-        "| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |",
+        "| # | Niðurstaða | Spurning | Tafla (vænt) | Action | Rétt gögn | Ofskynjaðar tölur | Talnavörður | Dómari |",
+        "| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |",
     ]
     for idx, d in enumerate(epochs[-1]["details"], 1):
         table_cell = f"`{d['matched_table']}`"
@@ -295,23 +316,29 @@ def render_run_details(run: dict, epochs: list, test_cases: list) -> str:
         hallu_cell = ", ".join(str(n) for n in d["hallucinated_numbers"]) if d["hallucinated_numbers"] else "–"
         query = d["query"].replace("|", "\\|")
         guard_cell = d.get("guard", "–")
+        data_cell = "–"
+        if d.get("missing_in_data"):
+            data_cell = "❌ vantar " + ", ".join(f"`{m}`" for m in d["missing_in_data"])
+        elif d.get("data_pass") is not None and test_cases[idx - 1].get("expected_in_data"):
+            data_cell = "✅" if d["data_pass"] else "❌"
         if d.get("rejected_numbers"):
             guard_cell += " (hafnaði " + ", ".join(f"{n:g}" for n in d["rejected_numbers"]) + ")"
         lines.append(
             f"| {idx} | {_pass_mark(d['overall_pass'])} | {query} | {table_cell} "
-            f"| `{d['expected_action']}` {_pass_mark(d['action_pass'])} | {hallu_cell} | {guard_cell} | {d['judge_verdict']} |"
+            f"| `{d['expected_action']}` {_pass_mark(d['action_pass'])} | {data_cell} | {hallu_cell} | {guard_cell} | {d['judge_verdict']} |"
         )
     return "\n".join(lines) + "\n"
 
 
 def render_leaderboard(history: list) -> str:
     lines = [
-        "| Keyrsla | Dagsetning & Tími | Dómara-módel | Prófunarsett | Table Match | Action Match | Zero Hallucination | Meðalsvartími | Athugasemdir |",
-        "| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |",
+        "| Keyrsla | Dagsetning & Tími | Dómara-módel | Prófunarsett | Table Match | Action Match | Data Match | Zero Hallucination | Meðalsvartími | Athugasemdir |",
+        "| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |",
     ]
     for n, h in enumerate(history, 1):
         judge = f"`{h['judge_model']}`" if h.get("judge_enabled") else "– (óvirkur)"
         test_set = h.get("test_set") or f"{h['total_tests']} próf"
+        data_cell = f"**{h['data_match_pct']}%**" if h.get("data_match_pct") is not None else "–"
         note = h.get("note", "")
         if h.get("guard_interventions"):
             note = f"{note} Talnavörður greip inn í {h['guard_interventions']} svar.".strip()
@@ -319,7 +346,7 @@ def render_leaderboard(history: list) -> str:
             note = f"{note} ([skýrsla]({h['archive']}))".strip()
         lines.append(
             f"| **Run {n}** | {h['timestamp'][:16]} | {judge} | {test_set} "
-            f"| **{h['table_retrieval_pct']}%** | **{h['action_match_pct']}%** | **{h['hallucination_free_pct']}%** "
+            f"| **{h['table_retrieval_pct']}%** | **{h['action_match_pct']}%** | {data_cell} | **{h['hallucination_free_pct']}%** "
             f"| {h['avg_latency_sec']}s | {note} |"
         )
     return "\n".join(lines) + "\n"
@@ -353,6 +380,7 @@ def save_reports(epochs: list, test_cases: list) -> None:
         "table_retrieval_pct": final["table_retrieval_pct"],
         "action_match_pct": final["action_match_pct"],
         "hallucination_free_pct": final["hallucination_free_pct"],
+        "data_match_pct": final.get("data_match_pct"),
         "avg_latency_sec": final["avg_latency_sec"],
         "guard_interventions": final.get("guard_retries", 0) + final.get("guard_fallbacks", 0),
         "note": RUN_NOTE,
