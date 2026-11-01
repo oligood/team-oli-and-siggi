@@ -32,39 +32,61 @@ def _get_collection():
 def find_best_table(question: str) -> dict:
     q = normalize(question)
 
-    # Direct topic checks for unambiguous terms
+    # 1. Wage Index (check before generic 'visitala')
+    if any(w in q for w in ["launavisital", "laun", "wage", "salary", "earnings", "kaupmatt"]):
+        return TABLES[5]
+
+    # 2. Inflation and Consumer Price Index (VIS01002)
     if any(w in q for w in ["visitala", "neysluverd", "verdbolg", "cpi", "inflation", "price index"]):
         return TABLES[0]
 
+    # 3. Unemployment & Labor Market (VIN00001)
+    if any(w in q for w in ["atvinnuleys", "atvinnulaus", "unemployment", "jobless", "vinnuafl", "vinnumarkad"]):
+        return TABLES[6]
+
+    # 4. Tourism and Passengers (SAM02001)
+    if any(w in q for w in ["ferdamenn", "ferdamann", "fartheg", "keflavik", "keflavikurflugvoll", "tourist", "passenger", "airport"]):
+        return TABLES[7]
+
+    # 5. Internal Migration (MAN01002)
     if any(w in q for w in ["flutt", "buferla", "migration", "moved", "landshlut", "landsfjord"]):
         return TABLES[2]
 
+    # 6. Reykjavík Districts (MAN03270)
     if any(w in q for w in ["hverfi", "vesturba", "midborg", "hlid", "laugardal", "breidholt", "grafarvog", "arba", "haaleit", "district", "neighborhood"]):
         return TABLES[4]
 
+    # 7. Municipalities (MAN02005)
     if any(w in q for w in [
         "sveitarfel", "reykjavik", "kopavog", "hafnarfjord", "hafnarfird", "akureyr",
-        "gardaba", "mosfellsba", "reykjanesba", "keflavik", "selfoss", "akranes",
-        "vestmannaey", "borgarbyggd", "grindavik", "husavik", "municipality",
+        "gardaba", "mosfellsba", "reykjanesba", "keflavikurb", "selfoss", "akranes",
+        "vestmannaey", "borgarbyggd", "grindavik", "husavik", "municipality", "kaupstad",
     ]):
         return TABLES[3]
 
-    if any(w in q for w in ["mannfjold", "ibua", "population", "inhabitants", "how many people", "hve margir bua"]):
+    # 8. Total Population of Iceland (MAN00000)
+    if any(w in q for w in [
+        "mannfjold", "ibua", "population", "inhabitants", "landsmenn",
+        "how many people", "bua margir", "margir bua", "hve margir", "hvad bua"
+    ]):
         return TABLES[1]
 
-    # Vector search in ChromaDB
+    # Vector search in ChromaDB (if available)
     collection, model = _get_collection()
     if collection is not None and model is not None:
         try:
             emb = model.encode([question]).tolist()
             results = collection.query(query_embeddings=emb, n_results=1)
             metas = results.get("metadatas", [[]])[0]
-            if metas:
+            dists = results.get("distances", [[]])[0]
+            # Only accept high-confidence vector matches
+            if metas and (not dists or dists[0] < 1.2):
                 return metas[0]
         except Exception:
             pass
 
-    return TABLES[1]
+    # No match found - do NOT hallucinate population table
+    return None
 
 
 if __name__ == "__main__":

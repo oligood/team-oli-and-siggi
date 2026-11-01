@@ -8,7 +8,7 @@ TABLES = [
         "id": "VIS01002",
         "title": "Vísitala neysluverðs (Consumer Price Index and Inflation)",
         "url": "https://px.hagstofa.is/pxis/api/v1/is/Efnahagur/visitolur/1_vnv/1_vnv/VIS01002.px",
-        "keywords": "vísitala neysluverðs verðbólga verðlag cpi consumer price index inflation prices month year",
+        "keywords": "vísitala neysluverðs verðbólga verðlag cpi consumer price index inflation prices month year núna",
     },
     {
         "id": "MAN00000",
@@ -33,6 +33,24 @@ TABLES = [
         "title": "Mannfjöldi eftir hverfum í Reykjavík, kyni og aldri (Population in Reykjavík by Districts)",
         "url": "https://px.hagstofa.is/pxis/api/v1/is/Ibuar/mannfjoldi/2_byggdir/Byggdakjarnarhverfi/MAN03270.px",
         "keywords": "hverfi í reykjavík vesturbær miðborg hlíðar laugardalur háaleiti bústaðir breiðholt árbær grafarvogur kjalarness grafarholt úlfarsárdalur districts neighborhoods reykjavik",
+    },
+    {
+        "id": "LAU04000",
+        "title": "Launavísitala eftir mánuðum frá 1989 (Wage Index and Annual Wage Growth)",
+        "url": "https://px.hagstofa.is/pxis/api/v1/is/Samfelag/launogtekjur/2_lvt/1_manadartolur/LAU04000.px",
+        "keywords": "launavísitala laun launahækkanir wage index wages salary earnings kaupmáttur",
+    },
+    {
+        "id": "VIN00001",
+        "title": "Vinnumarkaður og atvinnuleysi (Labour Force and Unemployment)",
+        "url": "https://px.hagstofa.is/pxis/api/v1/is/Samfelag/vinnumarkadur/vinnumarkadsrannsokn/1_manadartolur/VIN00001.px",
+        "keywords": "atvinnuleysi atvinnulausir vinnuafl starfandi unemployment jobless labour workforce starf vinnumarkaður",
+    },
+    {
+        "id": "SAM02001",
+        "title": "Farþegar um Keflavíkurflugvöll og erlendir ferðamenn (Passengers through Keflavík Airport)",
+        "url": "https://px.hagstofa.is/pxis/api/v1/is/Atvinnuvegir/ferdathjonusta/farthegar/1_farthegar/SAM02001.px",
+        "keywords": "ferðamenn ferðamanna ferðamennska farþegar flugvöllur keflavíkurflugvöllur tourists passengers airport flights travel",
     },
 ]
 

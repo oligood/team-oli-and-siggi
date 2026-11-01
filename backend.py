@@ -3,7 +3,7 @@ from threading import Lock
 import requests
 
 from search import find_best_table
-from px_api import fetch_table_data
+from px_api import fetch_table_data, is_english_query
 
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434/api/generate")
 MODEL_NAME = os.getenv("OLLAMA_MODEL", "llama3")
@@ -11,13 +11,23 @@ ollama_lock = Lock()
 
 
 def generate_llm_answer(question: str, table_title: str, table_id: str, facts_summary: str) -> str:
-    system_prompt = (
-        "Þú ert upplýsingafulltrúi hjá Hagstofu Íslands. "
-        "Svaraðu spurningu notandans stuttlega og nákvæmlega eingöngu út frá gefnum tölum hér að neðan. "
-        "Aldrei giska á tölur eða búa til tölur sem eru ekki í gögnunum. "
-        "Ef spurt er á ensku skaltu svara á ensku, annars á íslensku. "
-        "Nefndu töfluheitið í svarinu."
-    )
+    is_en = is_english_query(question)
+    
+    if is_en:
+        system_prompt = (
+            "You are an official representative for Statistics Iceland (Hagstofa Íslands). "
+            "Answer the user's question clearly, politely, and accurately based strictly on the official data provided below. "
+            "Never guess or make up numbers that are not in the data. "
+            "Always reference the official table code in your answer."
+        )
+    else:
+        system_prompt = (
+            "Þú ert upplýsingafulltrúi hjá Hagstofu Íslands. "
+            "Svaraðu spurningu notandans skýrt, kurteislega og nákvæmlega eingöngu út frá gefnum opinberum tölum hér að neðan. "
+            "Aldrei giska á tölur eða búa til tölur sem eru ekki í gögnunum. "
+            "Nefndu töfluheiti eða töflunúmer í svarinu."
+        )
+
     full_prompt = (
         f"{system_prompt}\n\n"
         f"Tafla: {table_id} - {table_title}\n"
@@ -33,7 +43,7 @@ def generate_llm_answer(question: str, table_title: str, table_id: str, facts_su
 
     try:
         with ollama_lock:
-            res = requests.post(OLLAMA_URL, json=payload, timeout=45)
+            res = requests.post(OLLAMA_URL, json=payload, timeout=15)
         if res.status_code == 200:
             text = res.json().get("response", "").strip()
             if text:
@@ -41,25 +51,51 @@ def generate_llm_answer(question: str, table_title: str, table_id: str, facts_su
     except Exception:
         pass
 
-    return f"Samkvæmt töflu {table_id} ({table_title}) hjá Hagstofu Íslands: {facts_summary}"
+    # High-quality deterministic natural language response from px_api
+    return facts_summary
 
 
 def answer_question(question: str) -> dict:
     if not question.strip():
-        return {"ok": False, "answer": "Vinsamlegast sláðu inn spurningu."}
+        return {
+            "ok": False,
+            "answer": "Vinsamlegast sláðu inn spurningu.",
+            "svar": "Vinsamlegast sláðu inn spurningu."
+        }
 
+    is_en = is_english_query(question)
     matched_table = find_best_table(question)
+
+    if not matched_table:
+        if is_en:
+            msg = (
+                "Sorry, I could not find an official Statistics Iceland table matching this query. "
+                "I can currently provide statistics for the Consumer Price Index (inflation), population figures, "
+                "municipalities, Reykjavík districts, internal migration, the wage index, unemployment rates, "
+                "and airport passenger traffic."
+            )
+        else:
+            msg = (
+                "Því miður hef ég ekki aðgang að opinberri Hagstofutöflu sem svarar þessari fyrirspurn. "
+                "Ég hef aðgang að opinberum tölum um vísitölu neysluverðs (verðbólgu), lykiltölur mannfjölda, "
+                "sveitarfélög, hverfi í Reykjavík, búferlaflutninga, launavísitölu, atvinnuleysi og farþega um Keflavíkurflugvöll."
+            )
+        return {"ok": False, "answer": msg, "svar": msg}
+
     api_result = fetch_table_data(matched_table["url"], question)
 
     if not api_result.get("ok"):
+        err_msg = api_result.get("error", "óþekkt villa")
+        if is_en:
+            msg = f"Unable to fetch official data from Statistics Iceland ({err_msg})."
+        else:
+            msg = f"Því miður tókst ekki að sækja opinberar tölur frá Hagstofu Íslands fyrir þessa fyrirspurn ({err_msg})."
         return {
             "ok": False,
-            "answer": (
-                "Því miður tókst ekki að sækja opinberar tölur frá Hagstofu Íslands "
-                f"fyrir þessa fyrirspurn ({api_result.get('error', 'óþekkt villa')})."
-            ),
-            "table_id": matched_table["id"],
-            "source_url": matched_table["url"],
+            "answer": msg,
+            "svar": msg,
+            "table_id": matched_table.get("id"),
+            "source_url": matched_table.get("url"),
         }
 
     answer_text = generate_llm_answer(
@@ -78,6 +114,8 @@ def answer_question(question: str) -> dict:
         "source_url": api_result["source_url"],
         "facts": api_result["facts"],
         "summary": api_result["summary"],
+        "structured_data": api_result.get("structured_data", []),
+        "computed": api_result.get("computed", {}),
     }
 
 

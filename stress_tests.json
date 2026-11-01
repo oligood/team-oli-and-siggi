@@ -1,0 +1,19 @@
+[
+  {"query": "Hvert er lengsta fljót á Íslandi?", "expected_table": "NONE", "expected_action": "REJECT"},
+  {"query": "Hvaða bíll er hraðskreiðastur?", "expected_table": "NONE", "expected_action": "REJECT"},
+  {"query": "Hvað er hæsta fjall á Íslandi?", "expected_table": "NONE", "expected_action": "REJECT"},
+  {"query": "Hvað búa margir í Kópavogi í dag?", "expected_table": "MAN02005", "expected_action": "FETCH_LATEST"},
+  {"query": "Hvað búa margir í Reykjavík?", "expected_table": "MAN02005", "expected_action": "FETCH_LATEST"},
+  {"query": "Hvað búa margir í Hafnarfirði?", "expected_table": "MAN02005", "expected_action": "FETCH_LATEST"},
+  {"query": "Hvað búa margir í Vesturbæ í Reykjavík?", "expected_table": "MAN03270", "expected_action": "FETCH_LATEST"},
+  {"query": "Hvað búa margir í Breiðholti?", "expected_table": "MAN03270", "expected_action": "FETCH_LATEST"},
+  {"query": "Hvað búa margir á Íslandi?", "expected_table": "MAN00000", "expected_action": "FETCH_LATEST"},
+  {"query": "How many people live in Iceland?", "expected_table": "MAN00000", "expected_action": "FETCH_LATEST"},
+  {"query": "Hver er verðbólgan núna?", "expected_table": "VIS01002", "expected_action": "FETCH_LATEST"},
+  {"query": "Hver var verðbólgan í júní 2024?", "expected_table": "VIS01002", "expected_action": "FETCH_SPECIFIC"},
+  {"query": "What is the inflation rate in Iceland?", "expected_table": "VIS01002", "expected_action": "FETCH_LATEST"},
+  {"query": "Hver er launavísitalan?", "expected_table": "LAU04000", "expected_action": "FETCH_LATEST"},
+  {"query": "Hvað er atvinnuleysi á Íslandi?", "expected_table": "VIN00001", "expected_action": "FETCH_LATEST"},
+  {"query": "Hvað fóru margir erlendir ferðamenn um Keflavíkurflugvöll?", "expected_table": "SAM02001", "expected_action": "FETCH_LATEST"},
+  {"query": "Hvað fluttu margir til höfuðborgarsvæðisins árið 2024?", "expected_table": "MAN01002", "expected_action": "FETCH_SPECIFIC"}
+]

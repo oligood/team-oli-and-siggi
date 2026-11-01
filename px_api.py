@@ -30,6 +30,18 @@ MANUDIR_MAPPING = {
     "desember": "12", "december": "12", "des": "12", "dec": "12",
 }
 
+MONTH_NAMES_IS = {
+    "01": "janúar", "02": "febrúar", "03": "mars", "04": "apríl",
+    "05": "maí", "06": "júní", "07": "júlí", "08": "ágúst",
+    "09": "september", "10": "október", "11": "nóvember", "12": "desember"
+}
+
+MONTH_NAMES_EN = {
+    "01": "January", "02": "February", "03": "March", "04": "April",
+    "05": "May", "06": "June", "07": "July", "08": "August",
+    "09": "September", "10": "October", "11": "November", "12": "December"
+}
+
 
 def hreinsa_texta(texti: str) -> str:
     nfkd = unicodedata.normalize("NFKD", str(texti))
@@ -37,6 +49,27 @@ def hreinsa_texta(texti: str) -> str:
     for k, v in {"þ": "th", "æ": "ae", "ö": "o", "ð": "d"}.items():
         flat = flat.replace(k, v)
     return flat
+
+
+def is_english_query(question: str) -> bool:
+    q = hreinsa_texta(question).split()
+    en_words = {"what", "how", "many", "population", "inflation", "who", "where", "is", "are", "in", "the", "rate", "people", "moved", "district", "wage", "unemployment"}
+    matches = sum(1 for w in q if w in en_words)
+    return matches >= 2
+
+
+def format_num(val, is_is: bool = True) -> str:
+    try:
+        f = float(val)
+        if f.is_integer():
+            n = int(f)
+            return f"{n:,}".replace(",", ".") if is_is else f"{n:,}"
+        formatted = f"{f:,.2f}"
+        if is_is:
+            return formatted.replace(",", "X").replace(".", ",").replace("X", ".")
+        return formatted
+    except Exception:
+        return str(val)
 
 
 def _match_sex(q_clean: str, v_vals: list, v_texts: list) -> tuple[list, str]:
@@ -56,6 +89,147 @@ def _match_sex(q_clean: str, v_vals: list, v_texts: list) -> tuple[list, str]:
     elif has_women:
         return ["2"], "Konur"
     return [total_val], "Alls"
+
+
+def _format_month_label(m_code: str, is_is: bool = True) -> str:
+    if "M" in m_code:
+        y, m = m_code.split("M")
+        m_name = MONTH_NAMES_IS.get(m, m) if is_is else MONTH_NAMES_EN.get(m, m)
+        return f"{m_name} {y}"
+    return m_code
+
+
+def format_facts_to_natural_language(table_code: str, title: str, question: str, rows: list, label_lookup: dict, var_codes: list, computed: dict) -> str:
+    is_en = is_english_query(question)
+
+    if table_code == "VIS01002":
+        m_curr = computed.get("m_curr", "")
+        m_prev = computed.get("m_prev", "")
+        v_curr = computed.get("v_curr", 0.0)
+        v_prev = computed.get("v_prev", 0.0)
+        infl = computed.get("infl", 0.0)
+        m_curr_txt = _format_month_label(m_curr, not is_en)
+        m_prev_txt = _format_month_label(m_prev, not is_en)
+
+        if is_en:
+            return (
+                f"According to Statistics Iceland (table {table_code}), the Consumer Price Index in {m_curr_txt} "
+                f"was {format_num(v_curr, False)} points (compared to {format_num(v_prev, False)} points in {m_prev_txt}). "
+                f"The 12-month inflation rate was {format_num(infl, False)}%."
+            )
+        return (
+            f"Samkvæmt vísitölu neysluverðs hjá Hagstofu Íslands (tafla {table_code}) var vísitalan "
+            f"{format_num(v_curr, True)} stig í {m_curr_txt} (samanborið við {format_num(v_prev, True)} stig í {m_prev_txt}). "
+            f"12 mánaða verðbólga mældist {format_num(infl, True)}%."
+        )
+
+    elif table_code == "MAN00000":
+        val = rows[-1]["values"][0] if rows and rows[-1].get("values") else "N/A"
+        year = rows[-1]["key"][0] if rows and rows[-1].get("key") else "2026"
+        if is_en:
+            return (
+                f"According to Statistics Iceland key population figures (table {table_code}), "
+                f"the population of Iceland was {format_num(val, False)} on January 1, {year}."
+            )
+        return (
+            f"Samkvæmt lykiltölum Hagstofu Íslands (tafla {table_code}) voru {format_num(val, True)} "
+            f"íbúar á Íslandi þann 1. janúar {year}."
+        )
+
+    elif table_code == "MAN02005":
+        val = rows[0]["values"][0] if rows and rows[0].get("values") else "N/A"
+        keys = rows[0].get("key", [])
+        muni_code = keys[0] if keys else ""
+        muni_name = label_lookup.get("Sveitarfélag", {}).get(muni_code, "sveitarfélaginu")
+        year = keys[2] if len(keys) > 2 else "2026"
+        if is_en:
+            return (
+                f"According to Statistics Iceland (table {table_code}), the population of {muni_name} "
+                f"was {format_num(val, False)} as of January 1, {year}."
+            )
+        return (
+            f"Samkvæmt mannfjöldatölum Hagstofu Íslands (tafla {table_code}) bjuggu {format_num(val, True)} "
+            f"manns í {muni_name} þann 1. janúar {year}."
+        )
+
+    elif table_code == "MAN03270":
+        val = rows[0]["values"][0] if rows and rows[0].get("values") else "N/A"
+        keys = rows[0].get("key", [])
+        dist_code = keys[0] if keys else ""
+        dist_name = label_lookup.get("Hverfi", {}).get(dist_code, "hverfinu")
+        year = keys[2] if len(keys) > 2 else "2026"
+        if is_en:
+            return (
+                f"According to Statistics Iceland (table {table_code}), {format_num(val, False)} people lived in "
+                f"{dist_name} in Reykjavík on January 1, {year}."
+            )
+        return (
+            f"Samkvæmt mannfjöldagögnum Hagstofu Íslands (tafla {table_code}) bjuggu {format_num(val, True)} "
+            f"manns í hverfinu {dist_name} í Reykjavík þann 1. janúar {year}."
+        )
+
+    elif table_code == "MAN01002":
+        total = computed.get("total_migration", 0)
+        year = rows[0]["key"][1] if rows and len(rows[0].get("key", [])) > 1 else "2024"
+        if is_en:
+            return (
+                f"According to Statistics Iceland regional migration records (table {table_code}), "
+                f"a total of {format_num(total, False)} people moved between the selected regions in {year}."
+            )
+        return (
+            f"Samkvæmt búferlaflutningatölum Hagstofu Íslands (tafla {table_code}) fluttu alls "
+            f"{format_num(total, True)} manns á milli tilgreindra svæða árið {year}."
+        )
+
+    elif table_code == "LAU04000":
+        idx_val = computed.get("wage_index", "N/A")
+        change_a = computed.get("wage_growth", "N/A")
+        m_code = computed.get("m_curr", "")
+        m_txt = _format_month_label(m_code, not is_en)
+        if is_en:
+            return (
+                f"According to Statistics Iceland wage statistics (table {table_code}), the Wage Index in {m_txt} "
+                f"stood at {format_num(idx_val, False)} points, representing a 12-month wage growth of {format_num(change_a, False)}%."
+            )
+        return (
+            f"Samkvæmt launavísitölu Hagstofu Íslands (tafla {table_code}) stóð launavísitalan í "
+            f"{format_num(idx_val, True)} stigum í {m_txt}. 12 mánaða hækkun launa mældist {format_num(change_a, True)}%."
+        )
+
+    elif table_code == "VIN00001":
+        rate = computed.get("unemployment_rate", "N/A")
+        count = computed.get("unemployed_count", "N/A")
+        m_code = computed.get("m_curr", "")
+        m_txt = _format_month_label(m_code, not is_en)
+        if is_en:
+            return (
+                f"According to the Statistics Iceland Labour Force Survey (table {table_code}), the unemployment rate in {m_txt} "
+                f"was {format_num(rate, False)}% (approx. {format_num(count, False)} people)."
+            )
+        return (
+            f"Samkvæmt vinnumarkaðsrannsókn Hagstofu Íslands (tafla {table_code}) mældist atvinnuleysi í {m_txt} "
+            f"{format_num(rate, True)}% ({format_num(count, True)} manns voru án atvinnu)."
+        )
+
+    elif table_code == "SAM02001":
+        count = computed.get("passenger_count", "N/A")
+        cat_name = computed.get("category_name", "farþegar")
+        m_code = computed.get("m_curr", "")
+        m_txt = _format_month_label(m_code, not is_en)
+        if is_en:
+            return (
+                f"According to Statistics Iceland (table {table_code}), a total of {format_num(count, False)} passengers "
+                f"({cat_name}) passed through Keflavík Airport in {m_txt}."
+            )
+        return (
+            f"Samkvæmt tölum Hagstofu Íslands um farþega (tafla {table_code}) fóru alls {format_num(count, True)} "
+            f"farþegar ({cat_name}) um Keflavíkurflugvöll í {m_txt}."
+        )
+
+    # Generic fallback
+    if is_en:
+        return f"According to Statistics Iceland table {table_code} ({title}): {computed.get('raw_summary', '')}"
+    return f"Samkvæmt töflu {table_code} ({title}) hjá Hagstofu Íslands: {computed.get('raw_summary', '')}"
 
 
 def fetch_table_data(table_url: str, question: str) -> dict:
@@ -80,6 +254,7 @@ def fetch_table_data(table_url: str, question: str) -> dict:
 
     table_code = table_url.split("/")[-1].replace(".px", "")
     query_list = []
+    computed = {}
 
     if table_code == "VIS01002":
         found_month = None
@@ -87,10 +262,6 @@ def fetch_table_data(table_url: str, question: str) -> dict:
             if re.search(r"\b" + re.escape(m_key), q_clean):
                 found_month = MANUDIR_MAPPING[m_key]
                 break
-        if not found_month:
-            found_month = "01"
-
-        is_inflation = any(w in q_clean for w in ["verdbolg", "inflation"])
 
         for var in variables:
             v_code = var.get("code")
@@ -98,12 +269,18 @@ def fetch_table_data(table_url: str, question: str) -> dict:
             v_vals = var.get("values", [])
 
             if "manudur" in v_text or "month" in v_text or v_code == "Mánuður":
-                target_year = int(years[0]) if years else int(v_vals[-1][:4])
-                m_target = f"{target_year}M{found_month}"
-                if m_target not in v_vals:
+                if not found_month:
                     m_target = v_vals[-1]
                     target_year = int(m_target[:4])
                     found_month = m_target[-2:]
+                else:
+                    target_year = int(years[0]) if years else int(v_vals[-1][:4])
+                    m_target = f"{target_year}M{found_month}"
+                    if m_target not in v_vals:
+                        m_target = v_vals[-1]
+                        target_year = int(m_target[:4])
+                        found_month = m_target[-2:]
+
                 prev_target = f"{target_year - 1}M{found_month}"
                 selected = [m for m in [prev_target, m_target] if m in v_vals]
                 query_list.append({"code": v_code, "selection": {"filter": "item", "values": selected}})
@@ -115,6 +292,64 @@ def fetch_table_data(table_url: str, question: str) -> dict:
             else:
                 if v_vals:
                     query_list.append({"code": v_code, "selection": {"filter": "item", "values": [v_vals[-1]]}})
+
+    elif table_code == "LAU04000":
+        for var in variables:
+            v_code = var.get("code")
+            v_text = hreinsa_texta(var.get("text", ""))
+            v_vals = var.get("values", [])
+            if "manudur" in v_text or v_code == "Mánuður":
+                found_month = None
+                for m_key in sorted(MANUDIR_MAPPING.keys(), key=len, reverse=True):
+                    if re.search(r"\b" + re.escape(m_key), q_clean):
+                        found_month = MANUDIR_MAPPING[m_key]
+                        break
+                if found_month and years:
+                    target = f"{years[0]}M{found_month}"
+                    sel = [target] if target in v_vals else [v_vals[-1]]
+                else:
+                    sel = [v_vals[-1]]
+                query_list.append({"code": v_code, "selection": {"filter": "item", "values": sel}})
+            elif "eining" in v_text or v_code == "Eining":
+                query_list.append({"code": v_code, "selection": {"filter": "item", "values": ["index", "change_A"]}})
+            else:
+                query_list.append({"code": v_code, "selection": {"filter": "item", "values": [v_vals[-1]]}})
+
+    elif table_code == "VIN00001":
+        for var in variables:
+            v_code = var.get("code")
+            v_text = hreinsa_texta(var.get("text", ""))
+            v_vals = var.get("values", [])
+            if "manudur" in v_text or v_code == "Mánuður":
+                query_list.append({"code": v_code, "selection": {"filter": "item", "values": [v_vals[-1]]}})
+            elif "kyn" in v_text or "aldur" in v_text:
+                query_list.append({"code": v_code, "selection": {"filter": "item", "values": ["0"]}})
+            elif "eining" in v_text or v_code == "Eining":
+                # 7 = Atvinnuleysi %, 3 = Atvinnulausir fjöldi
+                query_list.append({"code": v_code, "selection": {"filter": "item", "values": ["7", "3"]}})
+            else:
+                query_list.append({"code": v_code, "selection": {"filter": "item", "values": [v_vals[0]]}})
+
+    elif table_code == "SAM02001":
+        # Farþegar um Keflavíkurflugvöll
+        cat_val = "0"  # Farþegar alls
+        if any(w in q_clean for w in ["utlend", "foreign", "ferdamann", "ferdamenn", "erlend", "tourist"]):
+            cat_val = "2"  # Útlendingar alls
+        elif any(w in q_clean for w in ["islend", "iceland"]):
+            cat_val = "1"  # Ísland
+        elif any(w in q_clean for w in ["bandarik", "usa", "american"]):
+            cat_val = "5"  # Bandaríkin
+
+        for var in variables:
+            v_code = var.get("code")
+            v_text = hreinsa_texta(var.get("text", ""))
+            v_vals = var.get("values", [])
+            if "rikisfang" in v_text or v_code == "Ríkisfang":
+                query_list.append({"code": v_code, "selection": {"filter": "item", "values": [cat_val]}})
+            elif "manudur" in v_text or v_code == "Mánuður":
+                query_list.append({"code": v_code, "selection": {"filter": "item", "values": [v_vals[-1]]}})
+            else:
+                query_list.append({"code": v_code, "selection": {"filter": "item", "values": [v_vals[-1]]}})
 
     elif table_code == "MAN01002":
         found_regions = sorted([
@@ -176,7 +411,6 @@ def fetch_table_data(table_url: str, question: str) -> dict:
                 matched_val = v_vals[0]
                 for idx, vt in enumerate(v_texts):
                     vt_clean = hreinsa_texta(vt)
-                    # Strip leading district numbers like "1 vesturbaer"
                     vt_words = [w for w in vt_clean.split() if not w.isdigit() and len(w) >= 4]
                     for w in vt_words:
                         stem = w[:6] if len(w) >= 6 else w
@@ -224,7 +458,7 @@ def fetch_table_data(table_url: str, question: str) -> dict:
 
     rows = api_data.get("data", [])
     if not rows:
-        return {"ok": False, "error": "No data found for the selected filters."}
+        return {"ok": False, "error": "Engin gögn fundust fyrir valdar breytur."}
 
     # Map variable codes to valueTexts for readable output
     label_lookup = {}
@@ -235,6 +469,8 @@ def fetch_table_data(table_url: str, question: str) -> dict:
     var_codes = [col.get("code") for col in api_data.get("columns", []) if col.get("type") != "c"]
 
     readable_rows = []
+    structured_chart_data = []
+
     for r in rows:
         keys = r.get("key", [])
         vals = r.get("values", [])
@@ -245,30 +481,82 @@ def fetch_table_data(table_url: str, question: str) -> dict:
             labels.append(f"{v_code}: {lbl}")
         val_str = vals[0] if vals else "N/A"
         readable_rows.append(f"{', '.join(labels)} = {val_str}")
-
-    summary_text = "; ".join(readable_rows)
-
-    if table_code == "MAN01002" and len(rows) > 1:
         try:
-            total = sum(int(r["values"][0]) for r in rows if r.get("values"))
-            summary_text = f"Samtals {total} manns ({summary_text})"
+            val_flt = float(val_str)
+            label_disp = " - ".join(label_lookup.get(var_codes[idx], {}).get(k, k) for idx, k in enumerate(keys))
+            structured_chart_data.append({"Liður": label_disp, "Gildi": val_flt})
         except Exception:
             pass
 
-    # Calculate 12-month inflation if VIS01002 has 2 months
-    if table_code == "VIS01002" and len(rows) == 2:
+    computed["raw_summary"] = "; ".join(readable_rows)
+
+    if table_code == "VIS01002" and len(rows) >= 2:
         try:
             v_prev = float(rows[0]["values"][0])
             v_curr = float(rows[1]["values"][0])
             m_prev = rows[0]["key"][0]
             m_curr = rows[1]["key"][0]
             infl = ((v_curr - v_prev) / v_prev) * 100
-            summary_text = (
-                f"Vísitala neysluverðs í {m_curr} var {v_curr} stig (var {v_prev} stig í {m_prev}). "
-                f"12 mánaða breyting (verðbólga) var {infl:.2f}%."
-            )
+            computed["v_prev"] = v_prev
+            computed["v_curr"] = v_curr
+            computed["m_prev"] = m_prev
+            computed["m_curr"] = m_curr
+            computed["infl"] = infl
         except Exception:
             pass
+
+    elif table_code == "MAN01002":
+        try:
+            total = sum(int(r["values"][0]) for r in rows if r.get("values"))
+            computed["total_migration"] = total
+        except Exception:
+            pass
+
+    elif table_code == "LAU04000":
+        try:
+            for r in rows:
+                if len(r.get("key", [])) > 1:
+                    e_code = r["key"][1]
+                    if e_code == "index":
+                        computed["wage_index"] = float(r["values"][0])
+                    elif e_code == "change_A":
+                        computed["wage_growth"] = float(r["values"][0])
+                    computed["m_curr"] = r["key"][0]
+        except Exception:
+            pass
+
+    elif table_code == "VIN00001":
+        try:
+            for r in rows:
+                if len(r.get("key", [])) > 2:
+                    e_code = r["key"][2]
+                    if e_code == "7":
+                        computed["unemployment_rate"] = float(r["values"][0])
+                    elif e_code == "3":
+                        computed["unemployed_count"] = int(r["values"][0])
+                    computed["m_curr"] = r["key"][0]
+        except Exception:
+            pass
+
+    elif table_code == "SAM02001":
+        try:
+            if rows:
+                computed["passenger_count"] = int(rows[0]["values"][0])
+                cat_code = rows[0]["key"][0]
+                computed["category_name"] = label_lookup.get("Ríkisfang", {}).get(cat_code, "farþegar")
+                computed["m_curr"] = rows[0]["key"][1]
+        except Exception:
+            pass
+
+    natural_summary = format_facts_to_natural_language(
+        table_code=table_code,
+        title=title,
+        question=question,
+        rows=rows,
+        label_lookup=label_lookup,
+        var_codes=var_codes,
+        computed=computed,
+    )
 
     return {
         "ok": True,
@@ -277,13 +565,7 @@ def fetch_table_data(table_url: str, question: str) -> dict:
         "source_url": table_url,
         "query_used": query_list,
         "facts": readable_rows,
-        "summary": summary_text,
+        "summary": natural_summary,
+        "structured_data": structured_chart_data,
+        "computed": computed,
     }
-
-
-if __name__ == "__main__":
-    res = fetch_table_data(
-        "https://px.hagstofa.is/pxis/api/v1/is/Ibuar/mannfjoldi/2_byggdir/sveitarfelog/MAN02005.px",
-        "Hvað búa margir í Kópavogi árið 2025?",
-    )
-    print(res)
