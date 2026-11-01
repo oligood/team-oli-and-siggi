@@ -42,10 +42,12 @@ def stated_numbers(text: str) -> list:
             out.append((float(whole.replace(",", "") + ("." + dec if dec else "")), len(dec)))
         elif re.fullmatch(r"\d+[.,]\d+", tok):                             # 35,45 / 35.45
             out.append((float(tok.replace(",", ".")), len(re.split(r"[.,]", tok)[1])))
-        else:
+        elif " " in tok:
+            # A space-joined run that isn't one number ("árið 2025 4.941.211"): read each piece
             for part in tok.split():
-                if part.isdigit():
-                    out.append((float(part), 0))
+                out.extend(stated_numbers(part))
+        elif tok.isdigit():
+            out.append((float(tok), 0))
     return out
 
 

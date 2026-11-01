@@ -44,8 +44,37 @@ Question ──► search.py ──► px_api.py ──► backend.py ───�
 | `LAU04000` | Wage index |
 | `VIN00001` | Labour force survey / unemployment |
 | `SAM02001` | Passengers through Keflavík Airport |
+| `MAN00101` | Population by sex and age |
+| `MAN05101` | Live births |
+| `MAN43000` | Population by background (immigrants) |
+| `THJ01102` | Gross domestic product |
+| `SAM01601` | Overnight stays in registered accommodation |
+| `KOS07112` | Presidential elections 1952–1996 |
+| `VIN00920` | Unemployment by quarter |
+
+The last seven are driven by a declarative spec (`TABLE_SPECS` in `px_api.py`), so a new table is a few lines of configuration. On top of the fetched figures the system computes what a question asks for: the change and % change between periods, a share of a total, sums and differences, and ratios across tables ("births per 1,000 inhabitants"). Questions that need two tables ("the wage index and the CPI in August 2026") are split and each part is answered from its own table.
 
 ## Evaluation
+
+### Official Gagnvist example questions: 60 of 60
+
+The organisers' [gagnvist-starter](https://github.com/SyedMuhammadAzhar/gagnvist-starter) repo ships 60 questions with known answers (30 in English and 30 in Icelandic, 20 easy, 20 medium and 20 hard). An answer counts as right only if it states every expected number, rounded no more loosely than the official rule allows, and takes each number from an accepted table. `scripts/eval_gagnvist.py` applies the same rules as `gagnvist evaluate`.
+
+| Right answers | English | Icelandic | Together |
+| :--- | :--- | :--- | :--- |
+| easy (one number, one table) | 10 of 10 | 10 of 10 | 20 of 20 |
+| medium (a calculation within one table) | 10 of 10 | 10 of 10 | 20 of 20 |
+| hard (numbers from two tables) | 10 of 10 | 10 of 10 | 20 of 20 |
+| **all** | **30 of 30** | **30 of 30** | **60 of 60** |
+
+Run on the DGX Spark with Llama 3 70B and the number guard, at about 10 seconds per question. Our first scoring script reported 59/60: it misread *"árið 2025 4.941.211 milljónir króna"* as one number. The answer is correct under the official rounding rule, and the scorer has been fixed. Before this work the system answered 10 of the 60.
+
+```bash
+python3 scripts/eval_gagnvist.py            # with the LLM
+python3 scripts/eval_gagnvist.py --no-llm   # template answers only (fast retrieval check)
+```
+
+### Our own stress tests
 
 `optimize_agents.py` runs the test suite in [`stress_tests.json`](stress_tests.json) (41 questions) and measures, per question:
 
@@ -63,7 +92,7 @@ Each run appends to the leaderboard in **[`docs/EVALUATION_REPORT.md`](docs/EVAL
 - Red-team round (Run 3): table selection dropped to 74.1%, and the model invented numbers for places it had no data for.
 - After routing fixes (Run 4): table selection 100%, but the model still invented numbers in 18.5% of answers despite correct data.
 - After the number guard (Run 5): 0 hallucinated numbers; the guard corrected the model on the merged-municipality questions.
-- Run 6: full 41-question suite including Data Match (see the report for the final numbers).
+- Run 6: full 41-question suite including Data Match: 100% table match, 100% data match, 0 hallucinated numbers; the guard intervened in 3 of 41 answers.
 
 ## Running it
 
@@ -99,7 +128,7 @@ Public link for a demo: `cloudflared tunnel --url http://localhost:8501`.
 
 ## HPC sidequest (JURECA)
 
-`scripts/` contains a crawler for the Hagstofa table catalog (`data/hagstofa_catalog.json`, 100 tables) and a SLURM job that embeds the catalog on the JURECA supercomputer. The embeddings are a next step toward semantic routing over the whole catalog instead of the 8 tables above. They are not used by the running system yet.
+`scripts/` contains a crawler for the Hagstofa table catalog (`data/hagstofa_catalog.json`, 100 tables) and a SLURM job that embeds the catalog on the JURECA supercomputer. The embeddings are a next step toward semantic routing over the whole catalog instead of the hand-configured tables above. They are not used by the running system yet.
 
 ## Repository
 
@@ -112,6 +141,8 @@ Public link for a demo: `cloudflared tunnel --url http://localhost:8501`.
 | `number_guard.py` | Deterministic number verification |
 | `optimize_agents.py` | Evaluation runner and report generator |
 | `stress_tests.json` | 41 test questions with expected table, action and data |
+| `questions/gagnvist_examples.jsonl` | The 60 official Gagnvist example questions |
+| `scripts/eval_gagnvist.py` | Scores the official questions with the `gagnvist evaluate` rules |
 | `docs/EVALUATION_REPORT.md` | Leaderboard, red-team analysis, fixes |
 
 ## AI tools used
