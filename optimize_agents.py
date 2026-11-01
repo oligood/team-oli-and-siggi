@@ -18,12 +18,21 @@ import time
 import requests
 from search import find_best_table
 from px_api import fetch_table_data
-from backend import generate_llm_answer, answer_question
+from backend import generate_llm_answer, answer_question, MODEL_NAME
 
 STRESS_TESTS_FILE = os.getenv("STRESS_TESTS_FILE", "stress_tests.json")
 JUDGE_OLLAMA_URL = os.getenv("JUDGE_OLLAMA_URL", os.getenv("OLLAMA_URL", "http://localhost:11434/api/generate"))
 JUDGE_MODEL = os.getenv("JUDGE_MODEL", "llama3:70b")
 ENABLE_LLM_JUDGE = os.getenv("ENABLE_LLM_JUDGE", "false").lower() in ("true", "1", "yes")
+
+REPORT_PATH = "docs/EVALUATION_REPORT.md"
+REPORTS_DIR = "docs/reports"
+HISTORY_PATH = os.path.join(REPORTS_DIR, "history.json")
+RUN_NOTE = os.getenv("RUN_NOTE", "")  # Optional comment for the leaderboard, e.g. RUN_NOTE="Post-fix search.py"
+
+# EVALUATION_REPORT.md is partly hand-written; each run only replaces the text between these markers
+LEADERBOARD_START, LEADERBOARD_END = "<!-- AUTO:LEADERBOARD:START -->", "<!-- AUTO:LEADERBOARD:END -->"
+LATEST_START, LATEST_END = "<!-- AUTO:LATEST:START -->", "<!-- AUTO:LATEST:END -->"
 
 
 def load_stress_tests(file_path: str = STRESS_TESTS_FILE) -> list:
@@ -253,6 +262,8 @@ class StressTestRunner:
                 "action_pass": action_pass,
                 "hallucination_free": hallu_pass,
                 "hallucinated_numbers": hallucination_result["hallucinated_numbers"],
+                "judge_verdict": judge_feedback["verdict"],
+                "overall_pass": overall_pass,
                 "latency_sec": round(dur, 3),
                 "answer": final_answer,
             })
@@ -261,10 +272,12 @@ class StressTestRunner:
         action_accuracy = round((action_matches / total) * 100, 1)
         hallu_free_pct = round((hallucination_passes / total) * 100, 1)
         avg_latency = round(sum(latencies) / len(latencies), 2) if latencies else 0.0
+        overall_passes = sum(1 for d in epoch_details if d["overall_pass"])
 
         summary = {
             "epoch": epoch_num,
             "total_tests": total,
+            "overall_pass_pct": round((overall_passes / total) * 100, 1),
             "table_retrieval_pct": table_accuracy,
             "action_match_pct": action_accuracy,
             "hallucination_free_pct": hallu_free_pct,
@@ -279,6 +292,137 @@ class StressTestRunner:
         print(f"• Meðalviðbragðstími         : {avg_latency} sek")
         return summary
 
+
+def _load_run_history() -> list:
+    if not os.path.exists(HISTORY_PATH):
+        return []
+    with open(HISTORY_PATH, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def _safe_name(text: str) -> str:
+    return re.sub(r"[^A-Za-z0-9._-]+", "-", text).strip("-")
+
+
+def _pass_mark(ok: bool) -> str:
+    return "✅" if ok else "❌"
+
+
+def render_run_details(run: dict, epochs: list, test_cases: list) -> str:
+    """Markdown breakdown of one run: epoch summary plus per-test results of the final epoch."""
+    lines = [
+        f"- **Dagsetning:** {run['timestamp']}",
+        f"- **Svarlíkan:** `{run['answer_model']}`",
+        f"- **Dómari (LLM-as-a-Judge):** `{run['judge_model']}`" if run["judge_enabled"] else "- **Dómari (LLM-as-a-Judge):** óvirkur",
+        f"- **Prófunarskrá:** `{STRESS_TESTS_FILE}` ({len(test_cases)} tilvik)",
+        "",
+        "#### Niðurstöður yfir Epochs",
+        "",
+        "| Epoch | Heildarárangur | Table Match | Action / API Match | Zero Hallucinated Numbers | Meðaltími |",
+        "| :--- | :--- | :--- | :--- | :--- | :--- |",
+    ]
+    for h in epochs:
+        lines.append(
+            f"| {h['epoch']} | {h['overall_pass_pct']}% | {h['table_retrieval_pct']}% | {h['action_match_pct']}% "
+            f"| {h['hallucination_free_pct']}% | {h['avg_latency_sec']}s |"
+        )
+
+    lines += [
+        "",
+        f"#### Sundurliðun prófa (epoch {epochs[-1]['epoch']})",
+        "",
+        "| # | Niðurstaða | Spurning | Tafla (vænt) | Action | Ofskynjaðar tölur | Dómari |",
+        "| :--- | :--- | :--- | :--- | :--- | :--- | :--- |",
+    ]
+    for idx, d in enumerate(epochs[-1]["details"], 1):
+        table_cell = f"`{d['matched_table']}`"
+        if not d["table_pass"]:
+            table_cell += f" (vænt `{d['expected_table']}`)"
+        hallu_cell = ", ".join(str(n) for n in d["hallucinated_numbers"]) if d["hallucinated_numbers"] else "–"
+        query = d["query"].replace("|", "\\|")
+        lines.append(
+            f"| {idx} | {_pass_mark(d['overall_pass'])} | {query} | {table_cell} "
+            f"| `{d['expected_action']}` {_pass_mark(d['action_pass'])} | {hallu_cell} | {d['judge_verdict']} |"
+        )
+    return "\n".join(lines) + "\n"
+
+
+def render_leaderboard(history: list) -> str:
+    lines = [
+        "| Keyrsla | Dagsetning & Tími | Dómara-módel | Prófunarsett | Table Match | Action Match | Zero Hallucination | Meðalsvartími | Athugasemdir |",
+        "| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |",
+    ]
+    for n, h in enumerate(history, 1):
+        judge = f"`{h['judge_model']}`" if h.get("judge_enabled") else "– (óvirkur)"
+        test_set = h.get("test_set") or f"{h['total_tests']} próf"
+        note = h.get("note", "")
+        if h.get("archive"):
+            note = f"{note} ([skýrsla]({h['archive']}))".strip()
+        lines.append(
+            f"| **Run {n}** | {h['timestamp'][:16]} | {judge} | {test_set} "
+            f"| **{h['table_retrieval_pct']}%** | **{h['action_match_pct']}%** | **{h['hallucination_free_pct']}%** "
+            f"| {h['avg_latency_sec']}s | {note} |"
+        )
+    return "\n".join(lines) + "\n"
+
+
+def _replace_block(doc: str, start: str, end: str, body: str) -> str:
+    block = f"{start}\n{body}{end}"
+    if start in doc and end in doc:
+        return doc[:doc.index(start)] + block + doc[doc.index(end) + len(end):]
+    return doc.rstrip() + f"\n\n{block}\n"
+
+
+def save_reports(epochs: list, test_cases: list) -> None:
+    """
+    Appends this run to the run history, archives the full run under docs/reports/,
+    and refreshes the auto-generated leaderboard and latest-run sections of
+    docs/EVALUATION_REPORT.md, leaving the hand-written analysis untouched.
+    """
+    os.makedirs(REPORTS_DIR, exist_ok=True)
+    final = epochs[-1]
+    now = time.localtime()
+
+    run = {
+        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S", now),
+        "answer_model": MODEL_NAME,
+        "judge_model": JUDGE_MODEL,
+        "judge_enabled": ENABLE_LLM_JUDGE,
+        "total_tests": len(test_cases),
+        "epochs": len(epochs),
+        "overall_pass_pct": final["overall_pass_pct"],
+        "table_retrieval_pct": final["table_retrieval_pct"],
+        "action_match_pct": final["action_match_pct"],
+        "hallucination_free_pct": final["hallucination_free_pct"],
+        "avg_latency_sec": final["avg_latency_sec"],
+        "note": RUN_NOTE,
+    }
+
+    model_tag = _safe_name(JUDGE_MODEL if ENABLE_LLM_JUDGE else MODEL_NAME)
+    archive_name = f"eval_{model_tag}_{len(test_cases)}tests_{time.strftime('%Y%m%d-%H%M%S', now)}.md"
+    run["archive"] = f"reports/{archive_name}"
+
+    details_md = render_run_details(run, epochs, test_cases)
+    with open(os.path.join(REPORTS_DIR, archive_name), "w", encoding="utf-8") as f:
+        f.write(f"# Matskeyrsla {run['timestamp']}\n\n")
+        f.write(details_md)
+
+    history = _load_run_history()
+    history.append(run)
+    with open(HISTORY_PATH, "w", encoding="utf-8") as f:
+        json.dump(history, f, ensure_ascii=False, indent=2)
+
+    doc = "# LLM-as-a-Judge Evaluation & Stress Testing Benchmark\n"
+    if os.path.exists(REPORT_PATH):
+        with open(REPORT_PATH, "r", encoding="utf-8") as f:
+            doc = f.read()
+    doc = _replace_block(doc, LEADERBOARD_START, LEADERBOARD_END, render_leaderboard(history))
+    doc = _replace_block(doc, LATEST_START, LATEST_END, details_md)
+    with open(REPORT_PATH, "w", encoding="utf-8") as f:
+        f.write(doc)
+
+    print(f"\n✅ Matsskýrsla uppfærð í '{REPORT_PATH}' ({len(history)} keyrslur í sögu).")
+    print(f"✅ Keyrsla vistuð í '{os.path.join(REPORTS_DIR, archive_name)}'.")
 
 def run_evaluation_loop(num_epochs: int = 2):
     test_cases = load_stress_tests(STRESS_TESTS_FILE)
@@ -304,23 +448,7 @@ def run_evaluation_loop(num_epochs: int = 2):
             f"{str(h['avg_latency_sec']) + 's':<10}"
         )
 
-    # Save report
-    os.makedirs("docs", exist_ok=True)
-    report_path = "docs/EVALUATION_REPORT.md"
-    with open(report_path, "w", encoding="utf-8") as f:
-        f.write("# LLM-as-a-Judge Evaluation & Stress Testing Report\n\n")
-        f.write(f"- **Dagsetning:** {time.strftime('%Y-%m-%d %H:%M:%S')}\n")
-        f.write(f"- **Prófunarskrá:** `{STRESS_TESTS_FILE}` ({len(test_cases)} tilvik)\n\n")
-        f.write("## Niðurstöður yfir Epochs\n\n")
-        f.write("| Epoch | Table Match | Action / API Match | Zero Hallucinated Numbers | Meðaltími |\n")
-        f.write("| :--- | :--- | :--- | :--- | :--- |\n")
-        for h in history:
-            f.write(f"| {h['epoch']} | {h['table_retrieval_pct']}% | {h['action_match_pct']}% | {h['hallucination_free_pct']}% | {h['avg_latency_sec']}s |\n")
-        f.write("\n\n### Prófunartilvik og hegðun\n\n")
-        for c in test_cases:
-            f.write(f"- **Spurning:** {c.get('query')} | **Tafla:** `{c.get('expected_table')}` | **Action:** `{c.get('expected_action')}`\n")
-
-    print(f"\n✅ Matsskýrsla vistuð í '{report_path}'.")
+    save_reports(history, test_cases)
     return history
 
 

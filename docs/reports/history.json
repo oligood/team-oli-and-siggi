@@ -1,0 +1,41 @@
+[
+  {
+    "timestamp": "2026-11-01 14:23",
+    "answer_model": "óskráð",
+    "judge_model": "llama3:70b",
+    "judge_enabled": true,
+    "total_tests": 17,
+    "test_set": "17 próf (Grunnsett)",
+    "table_retrieval_pct": 100.0,
+    "action_match_pct": 100.0,
+    "hallucination_free_pct": 100.0,
+    "avg_latency_sec": 15.71,
+    "note": "Grunnprófun á töfluvali og reglukerfi staðfest."
+  },
+  {
+    "timestamp": "2026-11-01 14:35",
+    "answer_model": "óskráð",
+    "judge_model": "llama3.3:70b",
+    "judge_enabled": true,
+    "total_tests": 17,
+    "test_set": "17 próf (Grunnsett)",
+    "table_retrieval_pct": 100.0,
+    "action_match_pct": 100.0,
+    "hallucination_free_pct": 100.0,
+    "avg_latency_sec": 16.59,
+    "note": "Nýrri kynslóð Llama prófuð; sambærilegur stöðugleiki og hraði."
+  },
+  {
+    "timestamp": "2026-11-01 15:18",
+    "answer_model": "óskráð",
+    "judge_model": "qwen2.5:72b",
+    "judge_enabled": true,
+    "total_tests": 27,
+    "test_set": "27 próf (Adversarial)",
+    "table_retrieval_pct": 74.1,
+    "action_match_pct": 92.6,
+    "hallucination_free_pct": 77.8,
+    "avg_latency_sec": 25.64,
+    "note": "**Red Teaming:** 10 nýjar gildrur afhjúpuðu 7 veikleika í töfluvali."
+  }
+]
