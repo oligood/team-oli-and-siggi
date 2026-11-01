@@ -52,5 +52,38 @@
     "avg_latency_sec": 24.7,
     "note": "Post-fix: search.py + px_api.py",
     "archive": "reports/eval_qwen2.5-72b_27tests_20261101-160547.md"
+  },
+  {
+    "timestamp": "2026-11-01 16:56:13",
+    "answer_model": "llama3:70b",
+    "judge_model": "qwen2.5:72b",
+    "judge_enabled": true,
+    "total_tests": 27,
+    "epochs": 2,
+    "overall_pass_pct": 100.0,
+    "table_retrieval_pct": 100.0,
+    "action_match_pct": 100.0,
+    "hallucination_free_pct": 100.0,
+    "avg_latency_sec": 26.79,
+    "guard_interventions": 3,
+    "note": "Talnavörður + skýrari gögn",
+    "archive": "reports/eval_qwen2.5-72b_27tests_20261101-165613.md"
+  },
+  {
+    "timestamp": "2026-11-01 17:33:16",
+    "answer_model": "llama3:70b",
+    "judge_model": "qwen2.5:72b",
+    "judge_enabled": true,
+    "total_tests": 41,
+    "epochs": 2,
+    "overall_pass_pct": 100.0,
+    "table_retrieval_pct": 100.0,
+    "action_match_pct": 100.0,
+    "hallucination_free_pct": 100.0,
+    "data_match_pct": 100.0,
+    "avg_latency_sec": 25.7,
+    "guard_interventions": 3,
+    "note": "41 próf: rétt tímabil, samanburður, Data Match",
+    "archive": "reports/eval_qwen2.5-72b_41tests_20261101-173316.md"
   }
 ]
