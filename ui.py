@@ -6,7 +6,6 @@ from pathlib import Path
 import requests
 import streamlit as st
 from backend import answer_question
-from visuals.dashboard import render_interactive_dashboard
 
 BACKEND_URL = os.getenv("BACKEND_URL", "http://127.0.0.1:8000/query")
 
@@ -289,18 +288,6 @@ st.markdown("""
         border-top: 1px solid rgba(197,160,89,0.35) !important;
         margin: 1.5rem 0 !important;
     }
-    div[data-testid="stRadio"] > div {
-        justify-content: center !important;
-        gap: 1.5rem !important;
-        margin-bottom: 1.2rem !important;
-    }
-    div[data-testid="stRadio"] label {
-        font-family: 'Cinzel', serif !important;
-        font-size: 0.8rem !important;
-        letter-spacing: 0.12em !important;
-        color: #C5A059 !important;
-        cursor: pointer !important;
-    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -329,13 +316,6 @@ st.markdown("""
 
 st.markdown('<div class="divider-ornament">&#10022;&nbsp;&nbsp;&nbsp;&#10022;&nbsp;&nbsp;&nbsp;&#10022;</div>', unsafe_allow_html=True)
 
-nav_mode = st.radio(
-    "Viðmótshlutverk",
-    ["💬 Spjallborð", "🏛️ Keisaralegt Stjórnborð & Atlas"],
-    horizontal=True,
-    label_visibility="collapsed",
-)
-
 if "messages" not in st.session_state:
     st.session_state.messages = []
 if "last_admin_debug" not in st.session_state:
@@ -354,69 +334,66 @@ def render_message(role: str, content: str):
 """, unsafe_allow_html=True)
 
 
-if nav_mode == "🏛️ Keisaralegt Stjórnborð & Atlas":
-    render_interactive_dashboard(st.session_state.last_admin_debug)
-else:
-    for msg in st.session_state.messages:
-        render_message(msg["role"], msg["content"])
+for msg in st.session_state.messages:
+    render_message(msg["role"], msg["content"])
 
-    prompt = st.chat_input("Sláðu inn fyrirspurn um hagtölur...")
+prompt = st.chat_input("Sláðu inn fyrirspurn um hagtölur...")
 
-    if prompt:
-        st.session_state.messages.append({"role": "user", "content": prompt})
-        render_message("user", prompt)
+if prompt:
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    render_message("user", prompt)
 
-        with st.spinner("Sæki gögn..."):
-            t0 = time.time()
-            try:
-                response = requests.post(
-                    BACKEND_URL,
-                    json={"query": prompt, "prompt": prompt},
-                    timeout=60,
-                )
-                if response.status_code == 200:
-                    res_data = response.json()
-                else:
-                    res_data = answer_question(prompt)
-            except Exception:
+    with st.spinner("Sæki gögn..."):
+        t0 = time.time()
+        try:
+            response = requests.post(
+                BACKEND_URL,
+                json={"query": prompt, "prompt": prompt},
+                timeout=60,
+            )
+            if response.status_code == 200:
+                res_data = response.json()
+            else:
                 res_data = answer_question(prompt)
+        except Exception:
+            res_data = answer_question(prompt)
 
-            latency = time.time() - t0
-            answer_text = res_data.get("answer", "Engin svör bárust.")
+        latency = time.time() - t0
+        answer_text = res_data.get("answer", "Engin svör bárust.")
 
-            raw_px = res_data.get("raw_px", res_data.get("query_used", {}))
-            model_prompt = res_data.get("model_prompt", f"Query: {prompt}")
+        raw_px = res_data.get("raw_px", res_data.get("query_used", {}))
+        model_prompt = res_data.get("model_prompt", f"Query: {prompt}")
 
-            st.session_state.last_admin_debug = {
-                "table": res_data.get("table", res_data.get("table_id", "N/A")),
-                "action": res_data.get("action", "N/A"),
-                "latency": latency,
-                "prompt": model_prompt,
-                "raw_px": raw_px if raw_px else None,
-            }
+        st.session_state.last_admin_debug = {
+            "table": res_data.get("table", res_data.get("table_id", "N/A")),
+            "action": res_data.get("action", "N/A"),
+            "latency": latency,
+            "prompt": model_prompt,
+            "raw_px": raw_px if raw_px else None,
+        }
 
-        st.session_state.messages.append({"role": "assistant", "content": answer_text})
-        render_message("assistant", answer_text)
+    st.session_state.messages.append({"role": "assistant", "content": answer_text})
+    render_message("assistant", answer_text)
+    st.rerun()
+
+st.markdown("---")
+
+with st.expander("Tæknilegar upplýsingar / Kerfisrýni", expanded=False):
+    if st.session_state.last_admin_debug:
+        dbg = st.session_state.last_admin_debug
+        st.markdown(f"**Valin tafla:** `{dbg.get('table', 'Engin')}`")
+        st.markdown(f"**Aðgerð:** `{dbg.get('action', 'N/A')}`")
+        st.markdown(f"**Vinnslutími:** `{dbg.get('latency', 0):.2f} sek`")
+        if dbg.get("prompt"):
+            st.markdown("**Prompt:**")
+            st.code(dbg["prompt"], language="text")
+        if dbg.get("raw_px"):
+            st.markdown("**Hrá gögn frá Hagstofu:**")
+            st.json(dbg["raw_px"])
+    else:
+        st.caption("Engin fyrirspurn hefur verið send á núverandi setu.")
+
+    if st.button("Hreinsa spjallferil"):
+        st.session_state.messages = []
+        st.session_state.last_admin_debug = None
         st.rerun()
-
-    st.markdown("---")
-
-    with st.expander("Tæknilegar upplýsingar / Kerfisrýni", expanded=False):
-        if st.session_state.last_admin_debug:
-            dbg = st.session_state.last_admin_debug
-            st.markdown(f"**Valin tafla:** `{dbg.get('table', 'Engin')}`")
-            st.markdown(f"**Aðgerð:** `{dbg.get('action', 'N/A')}`")
-            st.markdown(f"**Vinnslutími:** `{dbg.get('latency', 0):.2f} sek`")
-            if dbg.get("prompt"):
-                st.markdown("**Prompt:**")
-                st.code(dbg["prompt"], language="text")
-            if dbg.get("raw_px"):
-                st.markdown("**Hrá gögn frá Hagstofu:**")
-                st.json(dbg["raw_px"])
-        else:
-            st.caption("Engin fyrirspurn hefur verið send á núverandi setu.")
-
-        if st.button("Hreinsa spjallferil"):
-            st.session_state.messages = []
-            st.session_state.last_admin_debug = None
-            st.rerun()
