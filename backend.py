@@ -5,8 +5,8 @@ import requests
 from search import find_best_table
 from px_api import fetch_table_data, is_english_query
 
-OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434/api/generate")
-MODEL_NAME = os.getenv("OLLAMA_MODEL", "llama3")
+OLLAMA_URL = os.getenv("OLLAMA_URL", "http://10.10.40.6:11434/api/generate")
+MODEL_NAME = os.getenv("OLLAMA_MODEL", "llama3:70b")
 ollama_lock = Lock()
 
 
@@ -51,7 +51,6 @@ def generate_llm_answer(question: str, table_title: str, table_id: str, facts_su
     except Exception:
         pass
 
-    # High-quality deterministic natural language response from px_api
     return facts_summary
 
 
@@ -60,7 +59,9 @@ def answer_question(question: str) -> dict:
         return {
             "ok": False,
             "answer": "Vinsamlegast sláðu inn spurningu.",
-            "svar": "Vinsamlegast sláðu inn spurningu."
+            "svar": "Vinsamlegast sláðu inn spurningu.",
+            "table": "NONE",
+            "action": "REJECT",
         }
 
     is_en = is_english_query(question)
@@ -80,7 +81,13 @@ def answer_question(question: str) -> dict:
                 "Ég hef aðgang að opinberum tölum um vísitölu neysluverðs (verðbólgu), lykiltölur mannfjölda, "
                 "sveitarfélög, hverfi í Reykjavík, búferlaflutninga, launavísitölu, atvinnuleysi og farþega um Keflavíkurflugvöll."
             )
-        return {"ok": False, "answer": msg, "svar": msg}
+        return {
+            "ok": False,
+            "answer": msg,
+            "svar": msg,
+            "table": "NONE",
+            "action": "REJECT",
+        }
 
     api_result = fetch_table_data(matched_table["url"], question)
 
@@ -94,8 +101,10 @@ def answer_question(question: str) -> dict:
             "ok": False,
             "answer": msg,
             "svar": msg,
+            "table": matched_table.get("id"),
             "table_id": matched_table.get("id"),
             "source_url": matched_table.get("url"),
+            "action": "FAIL",
         }
 
     answer_text = generate_llm_answer(
@@ -105,15 +114,29 @@ def answer_question(question: str) -> dict:
         facts_summary=api_result["summary"],
     )
 
+    action_type = "FETCH_SPECIFIC" if any(char.isdigit() for char in question) else "FETCH_LATEST"
+    model_prompt = (
+        f"Kerfi: Hagstofa Íslands Assistant (70B)\n"
+        f"Tafla: {api_result['table_id']} - {api_result['title']}\n"
+        f"Útdráttur: {api_result['summary']}\n"
+        f"Spurning: {question}"
+    )
+
     return {
         "ok": True,
         "answer": answer_text,
         "svar": answer_text,
+        "table": api_result["table_id"],
         "table_id": api_result["table_id"],
         "title": api_result["title"],
         "source_url": api_result["source_url"],
+        "action": action_type,
+        "model_prompt": model_prompt,
+        "raw_data": api_result.get("query_used", []),
+        "raw_px": api_result.get("query_used", []),
         "facts": api_result["facts"],
         "summary": api_result["summary"],
+        "query_used": api_result.get("query_used", []),
         "structured_data": api_result.get("structured_data", []),
         "computed": api_result.get("computed", {}),
     }
@@ -135,17 +158,18 @@ try:
     )
 
     class QueryRequest(BaseModel):
+        query: str = ""
         prompt: str = ""
         spurning: str = ""
 
     @app.post("/query")
     def query_endpoint(req: QueryRequest):
-        q = req.prompt or req.spurning
+        q = req.query or req.prompt or req.spurning
         return answer_question(q)
 
     @app.post("/spyrja")
     def spyrja_endpoint(req: QueryRequest):
-        q = req.spurning or req.prompt
+        q = req.spurning or req.query or req.prompt
         return answer_question(q)
 
 except ImportError:
