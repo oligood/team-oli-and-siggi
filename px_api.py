@@ -55,6 +55,60 @@ MONTH_NAMES_EN = {
 }
 
 
+MEN_PATTERN = r"\b(karl|men\b|male)"
+WOMEN_PATTERN = r"\b(kon(a|u|ur|um)\b|women|female)"
+# "What percentage / share of ..." needs the total next to the part
+SHARE_PATTERN = r"\b(hlutfall|percentage of|share of|what percentage|hve stort hlutfall)"
+
+# Tables answered from a declarative spec instead of a hand-written query builder.
+# time: the time variable (None if the table has none); defaults: value per variable;
+# match: question patterns that select other values; total: the value to add next to a
+# matched one when the question asks for a share; score: variables picked by word overlap
+# with the question (e.g. candidate names); what_is/what_en: what the figure measures.
+TABLE_SPECS = {
+    "MAN00101": {
+        "time": "Ár", "defaults": {"Kyn": "Total", "Aldur": "-1"},
+        "match": {"Kyn": [(MEN_PATTERN, "1"), (WOMEN_PATTERN, "2")]}, "total": {"Kyn": "Total"},
+        "what_is": "Mannfjöldi 1. janúar", "what_en": "Population on 1 January",
+    },
+    "MAN05101": {
+        "time": "Ár", "defaults": {"Eining": "0", "Aldur": "0"},
+        "what_is": "Lifandi fædd börn", "what_en": "Live births",
+    },
+    "MAN43000": {
+        "time": "Ár", "defaults": {"Aldur": "-1", "Bakgrunnur": "124", "Kyn": "0"},
+        "match": {"Kyn": [(MEN_PATTERN, "1"), (WOMEN_PATTERN, "2")]}, "total": {"Kyn": "0"},
+        "what_is": "Innflytjendur 1. janúar", "what_en": "Immigrants on 1 January",
+    },
+    "THJ01102": {
+        "time": "Ár", "defaults": {"Skipting": "11"},
+        "what_is": "Verg landsframleiðsla (milljónir króna)", "what_en": "Gross domestic product (ISK million)",
+    },
+    "SAM01601": {
+        "time": "Ár", "defaults": {"Þjóðerni": "Total", "Landshluti": "IS", "Eining": "0", "Mánuður": "0"},
+        "match": {"Þjóðerni": [(r"\b(utlend|foreign)", "Foreigners"), (r"\b(islending|icelander)", "IS")]},
+        "total": {"Þjóðerni": "Total"},
+        "what_is": "Gistinætur á skráðum gististöðum", "what_en": "Overnight stays in registered accommodation",
+    },
+    "KOS07112": {
+        "time": None, "defaults": {"GIld atkvæði": "0", "Kjördæmi": "0"}, "score": ["Frambjóðendur", "Kjördæmi"],
+        "what_is": "Gild atkvæði", "what_en": "Valid votes",
+    },
+    "VIN00920": {
+        "time": "Ársfjórðungur", "time_kind": "quarter",
+        "defaults": {"Landsvæði": "Alls", "Kyn": "Karlar og konur", "Aldur": "16-74 ára",
+                     "Eining": "Atvinnuleysi, % (Hlutfall af vinnuafli)"},
+        "match": {"Kyn": [(MEN_PATTERN, "Karlar"), (WOMEN_PATTERN, "Konur")]},
+        "what_is": "Atvinnuleysi, % af vinnuafli", "what_en": "Unemployment rate, % of labour force",
+    },
+}
+
+QUARTER_WORDS = {
+    "1": r"\b(first|1st|fyrsta|fyrst)\b", "2": r"\b(second|2nd|odrum|annar|annan)\b",
+    "3": r"\b(third|3rd|thridja|thridji)\b", "4": r"\b(fourth|4th|fjorda|fjordi|sidasta)\b",
+}
+
+
 def hreinsa_texta(texti: str) -> str:
     nfkd = unicodedata.normalize("NFKD", str(texti))
     flat = "".join([c for c in nfkd if not unicodedata.combining(c)]).lower()
@@ -110,7 +164,10 @@ def _requested_months(q_clean: str, years: list, v_vals: list) -> tuple[str, lis
     """
     months = _find_months(q_clean)
     if months:
-        if years:
+        if years and len(months) == 1 and len(set(years)) > 1:
+            # "from September 2025 to September 2026": the one month in each year
+            targets = [f"{y}M{months[0]}" for y in dict.fromkeys(years)]
+        elif years:
             targets = [f"{years[min(i, len(years) - 1)]}M{m}" for i, m in enumerate(months)]
         else:
             # "í maí" without a year: the most recent May that has been published
@@ -164,14 +221,92 @@ def _format_month_label(m_code: str, is_is: bool = True) -> str:
     return m_code
 
 
+def _is_total_label(label: str) -> bool:
+    return hreinsa_texta(label).strip() in ("alls", "total", "allt landid", "samtals", "karlar og konur")
+
+
+def derive_figures(entries: list, is_en: bool) -> tuple[str, dict]:
+    """
+    Calculations a question can ask for over two fetched figures: the change and % change
+    between two periods, a part's share of a total, or the sum and difference of two parts.
+    entries: [{"label": str, "period": str, "value": float}]. Returns (sentence, computed values).
+    """
+    if len(entries) != 2:
+        return "", {}
+    a, b = entries
+    computed = {}
+    if a["period"] != b["period"] and a["label"] == b["label"]:
+        first, last = sorted(entries, key=lambda e: e["period"])
+        change = round(last["value"] - first["value"], 2)
+        pct = round(change / first["value"] * 100, 2) if first["value"] else 0.0
+        computed.update(change=change, change_pct=pct)
+        if is_en:
+            return (f" Change from {first['period']} to {last['period']}: {format_num(change, False)} "
+                    f"({format_num(pct, False)}%)."), computed
+        return (f" Breyting frá {first['period']} til {last['period']}: {format_num(change, True)} "
+                f"({format_num(pct, True)}%)."), computed
+    if a["period"] == b["period"]:
+        totals = [e for e in entries if _is_total_label(e["label"])]
+        parts = [e for e in entries if not _is_total_label(e["label"])]
+        if len(totals) == 1 and len(parts) == 1 and totals[0]["value"]:
+            share = round(parts[0]["value"] / totals[0]["value"] * 100, 2)
+            computed["share_pct"] = share
+            if is_en:
+                return f" Share of {parts[0]['label']} in the total: {format_num(share, False)}%.", computed
+            return f" Hlutfall {parts[0]['label']} af heild: {format_num(share, True)}%.", computed
+        total = round(a["value"] + b["value"], 2)
+        diff = round(abs(a["value"] - b["value"]), 2)
+        computed.update(sum=total, difference=diff)
+        if is_en:
+            return f" Together: {format_num(total, False)}. Difference: {format_num(diff, False)}.", computed
+        return f" Samtals: {format_num(total, True)}. Munur: {format_num(diff, True)}.", computed
+    return "", {}
+
+
+def _best_scoring_value(q_clean: str, v_vals: list, v_texts: list, default: str) -> str:
+    """The value whose text shares the most words with the question (candidate names, constituencies)."""
+    q_tokens = set(re.findall(r"[a-z0-9]+", q_clean))
+    best, best_score = default, 0
+    for val, text in zip(v_vals, v_texts):
+        tokens = [t for t in re.findall(r"[a-z0-9]+", hreinsa_texta(text)) if len(t) >= 4]
+        score = sum(1 for t in tokens if t in q_tokens)
+        if score > best_score:
+            best, best_score = val, score
+    return best
+
+
+def _period_text(period: str, is_en: bool) -> str:
+    if re.fullmatch(r"\d{4}Q\d", period):
+        return f"Q{period[-1]} {period[:4]}" if is_en else f"{period[-1]}. ársfjórðungur {period[:4]}"
+    if re.fullmatch(r"\d{4}M\d{2}", period):
+        return _format_month_label(period, not is_en)
+    return period
+
+
 def format_facts_to_natural_language(table_code: str, title: str, question: str, rows: list, label_lookup: dict, var_codes: list, computed: dict) -> str:
     is_en = is_english_query(question)
+
+    if table_code in TABLE_SPECS:
+        spec = TABLE_SPECS[table_code]
+        entries = computed.get("entries", [])
+        what = spec["what_en"] if is_en else spec["what_is"]
+        parts = []
+        for e in entries:
+            prefix = f"{e['label']}, " if e["label"] else ""
+            parts.append(f"{prefix}{_period_text(e['period'], is_en)}: {format_num(e['value'], not is_en)}".strip(" :"))
+        derived, extra = derive_figures(entries, is_en)
+        computed.update(extra)
+        if is_en:
+            return f"According to Statistics Iceland (table {table_code}), {what}: " + "; ".join(parts) + "." + derived
+        return f"Samkvæmt Hagstofu Íslands (tafla {table_code}), {what}: " + "; ".join(parts) + "." + derived
 
     if table_code == "VIS01002":
         periods = computed.get("periods", [])
         if len(periods) >= 2:
             first, last = periods[0], periods[-1]
             change = computed.get("inflation_change_pp", 0.0)
+            idx_change = round(last["index"] - first["index"], 2)
+            computed["index_change"] = idx_change
             f_txt = _format_month_label(first["month"], not is_en)
             l_txt = _format_month_label(last["month"], not is_en)
             if is_en:
@@ -181,7 +316,8 @@ def format_facts_to_natural_language(table_code: str, title: str, question: str,
                     f"According to Statistics Iceland (table {table_code}), 12-month inflation was "
                     f"{format_num(first['inflation'], False)}% in {f_txt} and {format_num(last['inflation'], False)}% in {l_txt}, "
                     f"so inflation {direction}{by} between the two months. The Consumer Price Index stood at "
-                    f"{format_num(first['index'], False)} and {format_num(last['index'], False)} points respectively."
+                    f"{format_num(first['index'], False)} and {format_num(last['index'], False)} points respectively, "
+                    f"a change of {format_num(idx_change, False)} points."
                 )
             direction = "hækkaði" if change > 0 else "lækkaði" if change < 0 else "stóð í stað"
             by = f" um {format_num(abs(change), True)} prósentustig" if change else ""
@@ -189,7 +325,7 @@ def format_facts_to_natural_language(table_code: str, title: str, question: str,
                 f"Samkvæmt vísitölu neysluverðs hjá Hagstofu Íslands (tafla {table_code}) mældist 12 mánaða verðbólga "
                 f"{format_num(first['inflation'], True)}% í {f_txt} og {format_num(last['inflation'], True)}% í {l_txt}. "
                 f"Verðbólgan {direction}{by} á milli mánaðanna. Vísitalan var {format_num(first['index'], True)} stig "
-                f"í {f_txt} og {format_num(last['index'], True)} stig í {l_txt}."
+                f"í {f_txt} og {format_num(last['index'], True)} stig í {l_txt}, breyting um {format_num(idx_change, True)} stig."
             )
 
         m_curr = computed.get("m_curr", "")
@@ -236,14 +372,25 @@ def format_facts_to_natural_language(table_code: str, title: str, question: str,
                 "year": k.get("Ár", "2026"),
             })
         if len(entries) > 1:
-            year = entries[0]["year"]
+            def shown(e):
+                if e["name"] == "Alls":
+                    return "Iceland (total)" if is_en else "Allt landið"
+                return e["name"]
             if is_en:
-                parts = "; ".join(f"{e['name']}: {format_num(e['value'], False)} {e['noun']}" for e in entries)
-                text = f"According to Statistics Iceland (table {table_code}), population on January 1, {year}: {parts}."
+                parts = "; ".join(f"{shown(e)} ({e['year']}): {format_num(e['value'], False)} {e['noun']}" for e in entries)
+                text = f"According to Statistics Iceland (table {table_code}), population on January 1: {parts}."
             else:
-                parts = "; ".join(f"{e['name']}: {format_num(e['value'], True)} {e['noun']}" for e in entries)
-                text = f"Samkvæmt mannfjöldatölum Hagstofu Íslands (tafla {table_code}), mannfjöldi 1. janúar {year}: {parts}."
-            if len(entries) == 2 and "difference" in computed and entries[0]["noun"] == entries[1]["noun"]:
+                parts = "; ".join(f"{shown(e)} ({e['year']}): {format_num(e['value'], True)} {e['noun']}" for e in entries)
+                text = f"Samkvæmt mannfjöldatölum Hagstofu Íslands (tafla {table_code}), mannfjöldi 1. janúar: {parts}."
+            try:
+                derived, extra = derive_figures(
+                    [{"label": e["name"], "period": e["year"], "value": float(e["value"])} for e in entries], is_en)
+                computed.update(extra)
+                text += derived
+            except ValueError:
+                pass
+            if (len(entries) == 2 and "difference" in computed and entries[0]["noun"] == entries[1]["noun"]
+                    and entries[0]["year"] == entries[1]["year"] and "Alls" not in (entries[0]["name"], entries[1]["name"])):
                 bigger = max(entries, key=lambda e: float(e["value"]))["name"]
                 diff = computed["difference"]
                 text += (f" {bigger} has {format_num(diff, False)} more." if is_en
@@ -336,6 +483,18 @@ def format_facts_to_natural_language(table_code: str, title: str, question: str,
         return f"Samkvæmt búferlaflutningatölum Hagstofu Íslands (tafla {table_code}) {head}.{tail}"
 
     elif table_code == "LAU04000":
+        periods = computed.get("periods", [])
+        if len(periods) >= 2:
+            first, last, change = periods[0], periods[-1], computed["index_change"]
+            f_txt = _format_month_label(first["month"], not is_en)
+            l_txt = _format_month_label(last["month"], not is_en)
+            if is_en:
+                return (f"According to Statistics Iceland wage statistics (table {table_code}), the Wage Index was "
+                        f"{format_num(first['index'], False)} points in {f_txt} and {format_num(last['index'], False)} points "
+                        f"in {l_txt}, a change of {format_num(change, False)} points.")
+            return (f"Samkvæmt launavísitölu Hagstofu Íslands (tafla {table_code}) var launavísitalan "
+                    f"{format_num(first['index'], True)} stig í {f_txt} og {format_num(last['index'], True)} stig í {l_txt}, "
+                    f"breyting um {format_num(change, True)} stig.")
         idx_val = computed.get("wage_index", "N/A")
         change_a = computed.get("wage_growth", "N/A")
         m_code = computed.get("m_curr", "")
@@ -491,8 +650,8 @@ def fetch_table_data(table_url: str, question: str) -> dict:
             if "manudur" in v_text or v_code == "Mánuður":
                 kind, targets = _requested_months(q_clean, years, v_vals)
                 if kind == "years":
-                    targets = [max(v for v in v_vals if v.startswith(f"{targets[-1]}M"))]
-                query_list.append({"code": v_code, "selection": {"filter": "item", "values": [targets[-1]]}})
+                    targets = [max(v for v in v_vals if v.startswith(f"{y}M")) for y in targets]
+                query_list.append({"code": v_code, "selection": {"filter": "item", "values": targets}})
             elif "eining" in v_text or v_code == "Eining":
                 query_list.append({"code": v_code, "selection": {"filter": "item", "values": ["index", "change_A"]}})
             else:
@@ -620,17 +779,45 @@ def fetch_table_data(table_url: str, question: str) -> dict:
                         if matched_val != v_vals[0]:
                             break
                     matched_vals = [matched_val]
+                # "What percentage of Iceland's population lived in Reykjavík?" also needs the national total
+                if ("sveitarfelag" in v_text and re.search(SHARE_PATTERN, q_clean)
+                        and re.search(r"\b(island|iceland|landsm)", q_clean) and v_vals[0] not in matched_vals):
+                    matched_vals.append(v_vals[0])
                 query_list.append({"code": v_code, "selection": {"filter": "item", "values": matched_vals}})
             elif "aldur" in v_text:
                 query_list.append({"code": v_code, "selection": {"filter": "item", "values": [v_vals[0]]}})
             elif "ar" in v_text:
-                y = [years[0]] if (years and years[0] in v_vals) else [v_vals[-1]]
+                # Every year asked about ("from 1 January 2025 to 1 January 2026"), else the latest
+                y = [yr for yr in dict.fromkeys(years) if yr in v_vals] or [v_vals[-1]]
                 query_list.append({"code": v_code, "selection": {"filter": "item", "values": y}})
             elif "kyn" in v_text:
                 sex_vals, _ = _match_sex(q_clean, v_vals, v_texts)
                 query_list.append({"code": v_code, "selection": {"filter": "item", "values": sex_vals}})
             else:
                 query_list.append({"code": v_code, "selection": {"filter": "item", "values": [v_vals[0]]}})
+
+    elif table_code in TABLE_SPECS:
+        spec = TABLE_SPECS[table_code]
+        asks_share = bool(re.search(SHARE_PATTERN, q_clean))
+        for var in variables:
+            v_code = var.get("code")
+            v_vals = var.get("values", [])
+            v_texts = var.get("valueTexts", [])
+            if v_code == spec["time"]:
+                if spec.get("time_kind") == "quarter":
+                    sel = [f"{y}Q{n}" for y in dict.fromkeys(years) for n, pat in QUARTER_WORDS.items()
+                           if re.search(pat, q_clean) and f"{y}Q{n}" in v_vals]
+                else:
+                    sel = [y for y in dict.fromkeys(years) if y in v_vals]
+                sel = sel or [v_vals[-1]]
+            elif v_code in spec.get("score", []):
+                sel = [_best_scoring_value(q_clean, v_vals, v_texts, spec["defaults"].get(v_code, v_vals[0]))]
+            else:
+                sel = [val for pat, val in spec.get("match", {}).get(v_code, []) if re.search(pat, q_clean)]
+                if sel and asks_share and v_code in spec.get("total", {}):
+                    sel.append(spec["total"][v_code])
+                sel = sel or [spec["defaults"].get(v_code, v_vals[0])]
+            query_list.append({"code": v_code, "selection": {"filter": "item", "values": sel}})
 
     else:
         # MAN00000 and generic tables
@@ -718,6 +905,20 @@ def fetch_table_data(table_url: str, question: str) -> dict:
         except Exception:
             pass
 
+    elif table_code in TABLE_SPECS:
+        spec = TABLE_SPECS[table_code]
+        varying = {q["code"] for q in query_list if len(q["selection"]["values"]) > 1} - {spec["time"]}
+        entries = []
+        for r in rows:
+            k = dict(zip(var_codes, r.get("key", [])))
+            try:
+                value = float(r["values"][0])
+            except (ValueError, IndexError, KeyError):
+                continue
+            label = ", ".join(label_lookup.get(c, {}).get(k[c], k[c]) for c in var_codes if c in varying)
+            entries.append({"label": label, "period": k.get(spec["time"], "") if spec["time"] else "", "value": value})
+        computed["entries"] = entries
+
     elif table_code == "MAN02005" and len(rows) == 2:
         try:
             computed["difference"] = abs(int(rows[0]["values"][0]) - int(rows[1]["values"][0]))
@@ -733,14 +934,19 @@ def fetch_table_data(table_url: str, question: str) -> dict:
 
     elif table_code == "LAU04000":
         try:
-            for r in rows:
+            index_by_month = {}
+            for r in sorted(rows, key=lambda r: r.get("key", [""])[0]):
                 if len(r.get("key", [])) > 1:
                     e_code = r["key"][1]
                     if e_code == "index":
                         computed["wage_index"] = float(r["values"][0])
+                        index_by_month[r["key"][0]] = float(r["values"][0])
                     elif e_code == "change_A":
                         computed["wage_growth"] = float(r["values"][0])
                     computed["m_curr"] = r["key"][0]
+            if len(index_by_month) >= 2:
+                computed["periods"] = [{"month": m, "index": v} for m, v in sorted(index_by_month.items())]
+                computed["index_change"] = round(computed["periods"][-1]["index"] - computed["periods"][0]["index"], 2)
         except Exception:
             pass
 

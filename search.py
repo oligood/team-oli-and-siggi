@@ -2,7 +2,7 @@ import os
 import re
 import unicodedata
 from datetime import date
-from ingest import CHROMA_DIR, COLLECTION_NAME, TABLES
+from ingest import CHROMA_DIR, COLLECTION_NAME, TABLES, TABLES_BY_ID
 
 _model = None
 _collection = None
@@ -48,6 +48,18 @@ MUNICIPALITY_ALIASES = {
 
 # "Reykjavík í heild, ekki bara Breiðholt" á að fara í sveitarfélagatöfluna, ekki hverfatöfluna
 REYKJAVIK_WHOLE_PATTERNS = [r"\bi heild\b", r"\bekki bara\b", r"\bekki adeins\b", r"\ballri reykjavik", r"\breykjavik alls\b"]
+
+# Topics with their own table, checked before place names: "votes in Reykjavík" is an election
+# question and "overnight stays in Iceland" is not a population question
+TOPIC_TABLES = [
+    ("KOS07112", [r"\bforsetakj", r"\bforsetakosn", r"\bpresidential", r"\batkvaed", r"\bvotes?\b"]),
+    ("MAN05101", [r"\bfaedd", r"\bfaeding", r"\bbirths?\b", r"\bwere born\b", r"\bborn in\b"]),
+    ("THJ01102", [r"\blandsframleidsl", r"\bgdp\b", r"\bgross domestic"]),
+    ("SAM01601", [r"\bgistin", r"\bovernight"]),
+    ("MAN43000", [r"\binnflytj", r"\bimmigrant"]),
+]
+
+SEX_PATTERN = r"\b(karl|kon(a|u|ur|um)\b|men\b|women\b|male|female)"
 
 POPULATION_WORDS = ["bua", "ibua", "mannfjold", "population", "inhabitants", "live in"]
 
@@ -127,6 +139,11 @@ def find_best_table(question: str) -> dict:
     if any(int(y) > date.today().year for y in re.findall(r"\b(20\d{2})\b", q)):
         return None
 
+    # 0b. Topic tables
+    for table_id, patterns in TOPIC_TABLES:
+        if any(re.search(p, q) for p in patterns):
+            return TABLES_BY_ID[table_id]
+
     # 1. Wage Index (check before generic 'visitala')
     if any(w in q for w in ["launavisital", "laun", "wage", "salary", "earnings", "kaupmatt"]):
         return TABLES[5]
@@ -137,6 +154,9 @@ def find_best_table(question: str) -> dict:
 
     # 3. Unemployment & Labor Market (VIN00001)
     if any(w in q for w in ["atvinnuleys", "atvinnulaus", "unemployment", "jobless", "vinnuafl", "vinnumarkad"]):
+        # Quarterly figures live in their own table
+        if re.search(r"\barsfjord|\bquarter", q):
+            return TABLES_BY_ID["VIN00920"]
         return TABLES[6]
 
     # 4. Tourism and Passengers (SAM02001)
@@ -174,6 +194,10 @@ def find_best_table(question: str) -> dict:
         "vestmannaey", "borgarbyggd", "grindavik", "husavik", "municipality", "kaupstad",
     ]):
         return TABLES[3]
+
+    # 8a. National population by sex ("more men than women", "share of women")
+    if re.search(SEX_PATTERN, q) and any(w in q for w in ["island", "iceland", "landsm", "mannfjold", "population", "bjuggu", "lived"]):
+        return TABLES_BY_ID["MAN00101"]
 
     # 8. Total Population of Iceland (MAN00000)
     if any(w in q for w in [

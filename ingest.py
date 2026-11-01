@@ -52,7 +52,51 @@ TABLES = [
         "url": "https://px.hagstofa.is/pxis/api/v1/is/Atvinnuvegir/ferdathjonusta/farthegar/1_farthegar/SAM02001.px",
         "keywords": "ferðamenn ferðamanna ferðamennska farþegar flugvöllur keflavíkurflugvöllur tourists passengers airport flights travel",
     },
+    {
+        "id": "MAN00101",
+        "title": "Mannfjöldi eftir kyni og aldri (Population by sex and age)",
+        "url": "https://px.hagstofa.is/pxis/api/v1/is/Ibuar/mannfjoldi/1_yfirlit/Yfirlit_mannfjolda/MAN00101.px",
+        "keywords": "mannfjöldi karlar konur kyn population men women sex",
+    },
+    {
+        "id": "MAN05101",
+        "title": "Lifandi fæddir eftir aldri móður (Live births)",
+        "url": "https://px.hagstofa.is/pxis/api/v1/is/Ibuar/Faeddirdanir/Faeddir/faedingar/MAN05101.px",
+        "keywords": "fæddir fæðingar börn fæddust births born",
+    },
+    {
+        "id": "MAN43000",
+        "title": "Mannfjöldi eftir bakgrunni (Population by background, immigrants)",
+        "url": "https://px.hagstofa.is/pxis/api/v1/is/Ibuar/mannfjoldi/3_bakgrunnur/Uppruni/MAN43000.px",
+        "keywords": "innflytjendur bakgrunnur immigrants background",
+    },
+    {
+        "id": "THJ01102",
+        "title": "Landsframleiðsla og þjóðartekjur (Gross domestic product)",
+        "url": "https://px.hagstofa.is/pxis/api/v1/is/Efnahagur/thjodhagsreikningar/landsframl/1_landsframleidsla/THJ01102.px",
+        "keywords": "landsframleiðsla verg landsframleiðsla þjóðartekjur gdp gross domestic product",
+    },
+    {
+        "id": "SAM01601",
+        "title": "Gistinætur á öllum tegundum skráðra gististaða (Overnight stays in registered accommodation)",
+        "url": "https://px.hagstofa.is/pxis/api/v1/is/Atvinnuvegir/ferdathjonusta/Gisting/3_allartegundirgististada/SAM01601.px",
+        "keywords": "gistinætur gististaðir gestakomur overnight stays accommodation",
+    },
+    {
+        "id": "KOS07112",
+        "title": "Úrslit forsetakjörs eftir frambjóðendum og kjördæmum 1952-1996 (Presidential elections)",
+        "url": "https://px.hagstofa.is/pxis/api/v1/is/Ibuar/kosningar/forsetakosningar/KOS07112.px",
+        "keywords": "forsetakjör forsetakosningar atkvæði frambjóðendur presidential election votes",
+    },
+    {
+        "id": "VIN00920",
+        "title": "Hlutfall og fjöldi atvinnulausra eftir ársfjórðungum (Unemployment by quarter)",
+        "url": "https://px.hagstofa.is/pxis/api/v1/is/Samfelag/vinnumarkadur/vinnumarkadsrannsokn/2_arsfjordungstolur/VIN00920.px",
+        "keywords": "atvinnuleysi ársfjórðungur unemployment quarter",
+    },
 ]
+
+TABLES_BY_ID = {t["id"]: t for t in TABLES}
 
 
 def fetch_table_metadata(table: dict) -> str:
