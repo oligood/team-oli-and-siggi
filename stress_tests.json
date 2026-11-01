@@ -15,5 +15,15 @@
   {"query": "Hver er launavísitalan?", "expected_table": "LAU04000", "expected_action": "FETCH_LATEST"},
   {"query": "Hvað er atvinnuleysi á Íslandi?", "expected_table": "VIN00001", "expected_action": "FETCH_LATEST"},
   {"query": "Hvað fóru margir erlendir ferðamenn um Keflavíkurflugvöll?", "expected_table": "SAM02001", "expected_action": "FETCH_LATEST"},
-  {"query": "Hvað fluttu margir til höfuðborgarsvæðisins árið 2024?", "expected_table": "MAN01002", "expected_action": "FETCH_SPECIFIC"}
+  {"query": "Hvað fluttu margir til höfuðborgarsvæðisins árið 2024?", "expected_table": "MAN01002", "expected_action": "FETCH_SPECIFIC"},
+  {"query": "Hvað búa margir á Seyðisfirði?", "expected_table": "MAN02005", "expected_action": "FETCH_LATEST"},
+  {"query": "Hvað búa margir í Garði og Sandgerði?", "expected_table": "MAN02005", "expected_action": "FETCH_LATEST"},
+  {"query": "Hvað búa margir í Keflavík?", "expected_table": "MAN02005", "expected_action": "FETCH_LATEST"},
+  {"query": "Hvað búa margir á Kjalarnesi?", "expected_table": "MAN03270", "expected_action": "FETCH_LATEST"},
+  {"query": "Hvað búa margir í Reykjavík í heild, ekki bara í Breiðholti?", "expected_table": "MAN02005", "expected_action": "FETCH_LATEST"},
+  {"query": "Hækkaði verðbólgan milli maí og ágúst 2024?", "expected_table": "VIS01002", "expected_action": "FETCH_SPECIFIC"},
+  {"query": "Hvað fjölgaði atvinnulausum mikið milli 2022 og 2023?", "expected_table": "VIN00001", "expected_action": "FETCH_SPECIFIC"},
+  {"query": "Hverjir eru stýrivextir Seðlabankans núna?", "expected_table": "NONE", "expected_action": "REJECT"},
+  {"query": "Hvað var hitinn í Reykjavík í gær?", "expected_table": "NONE", "expected_action": "REJECT"},
+  {"query": "Hvert er fasteignamat íbúða í Kópavogi?", "expected_table": "NONE", "expected_action": "REJECT"}
 ]
