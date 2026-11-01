@@ -2,6 +2,8 @@ import re
 import unicodedata
 import requests
 
+from search import resolve_municipality
+
 SVAEDA_MAPPING = {
     "hofudborgarsvaed": "1",
     "reykjavik": "1",
@@ -409,16 +411,21 @@ def fetch_table_data(table_url: str, question: str) -> dict:
 
             if "sveitarfelag" in v_text or "hverfi" in v_text:
                 matched_val = v_vals[0]
-                for idx, vt in enumerate(v_texts):
-                    vt_clean = hreinsa_texta(vt)
-                    vt_words = [w for w in vt_clean.split() if not w.isdigit() and len(w) >= 4]
-                    for w in vt_words:
-                        stem = w[:6] if len(w) >= 6 else w
-                        if stem in q_clean:
-                            matched_val = v_vals[idx]
+                # Old/merged names (Seyðisfjörður -> Múlaþing) can't be found by stem matching
+                alias = resolve_municipality(q_clean) if "sveitarfelag" in v_text else None
+                if alias in v_texts:
+                    matched_val = v_vals[v_texts.index(alias)]
+                else:
+                    for idx, vt in enumerate(v_texts):
+                        vt_clean = hreinsa_texta(vt)
+                        vt_words = [w for w in vt_clean.split() if not w.isdigit() and len(w) >= 4]
+                        for w in vt_words:
+                            stem = w[:6] if len(w) >= 6 else w
+                            if stem in q_clean:
+                                matched_val = v_vals[idx]
+                                break
+                        if matched_val != v_vals[0]:
                             break
-                    if matched_val != v_vals[0]:
-                        break
                 query_list.append({"code": v_code, "selection": {"filter": "item", "values": [matched_val]}})
             elif "aldur" in v_text:
                 query_list.append({"code": v_code, "selection": {"filter": "item", "values": [v_vals[0]]}})

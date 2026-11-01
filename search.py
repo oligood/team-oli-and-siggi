@@ -1,9 +1,58 @@
 import os
+import re
 import unicodedata
 from ingest import CHROMA_DIR, COLLECTION_NAME, TABLES
 
 _model = None
 _collection = None
+
+# Spurningar sem heyra undir aðrar stofnanir (Veðurstofan, Seðlabankinn, HMS/Þjóðskrá).
+# Athugað fyrst, svo bæjarheiti í spurningunni dragi hana ekki í mannfjöldatöflu.
+OUT_OF_SCOPE_PATTERNS = [
+    r"\bvedur", r"\bvedri", r"\bhiti\b", r"\bhitinn\b", r"\bhitastig", r"\brign", r"\bsnjo",
+    r"\bstyrivext", r"\bstyrivaxt", r"\bvextir\b", r"\bvexti\b", r"\bsedlabank",
+    r"\bfasteignamat", r"\bfasteignaverd", r"\bibudaverd",
+    r"\bweather\b", r"\btemperature\b", r"\binterest rate", r"\bcentral bank", r"\bproperty value", r"\bhouse price",
+]
+
+# Gömul, sameinuð eða óformleg staðarheiti -> sveitarfélag eins og það heitir í MAN02005.
+# Lyklar eru regex á normaliseraðan texta; \b fremst svo t.d. "vogar" grípi ekki "Kópavogur".
+MUNICIPALITY_ALIASES = {
+    r"\bseydis(fj|fir)": "Múlaþing", r"\begilsstad": "Múlaþing", r"\bdjupavog": "Múlaþing",
+    r"\bdjupivog": "Múlaþing", r"\bborgar(fj|fir)\w* eystr": "Múlaþing", r"\bfljotsdalsherad": "Múlaþing",
+    r"\bmulathing": "Múlaþing",
+    r"\bsandgerd": "Suðurnesjabær", r"\bgard(ur|i|s)\b": "Suðurnesjabær", r"\bsudurnesjab": "Suðurnesjabær",
+    r"\bkeflavik(?!urflugv)": "Reykjanesbær", r"\bnjardvik": "Reykjanesbær", r"\breykjanesb": "Reykjanesbær",
+    r"\bgrindavik": "Grindavíkurbær", r"\bvog(ar|um)\b": "Sveitarfélagið Vogar",
+    r"\bkopavog": "Kópavogsbær", r"\bhafnar(fj|fir)": "Hafnarfjarðarkaupstaður",
+    r"\bgardab": "Garðabær", r"\bmosfellsb": "Mosfellsbær", r"\bseltjarnarnes": "Seltjarnarnesbær",
+    r"\bakranes": "Akraneskaupstaður", r"\bborgarnes": "Borgarbyggð", r"\bborgarbyggd": "Borgarbyggð",
+    r"\bstykkisholm": "Sveitarfélagið Stykkishólmur", r"\bolafsvik": "Snæfellsbær", r"\bhellissand": "Snæfellsbær",
+    r"\bisa(fj|fir)": "Ísafjarðarbær", r"\bflateyr": "Ísafjarðarbær", r"\bthingeyr": "Ísafjarðarbær", r"\bsudureyr": "Ísafjarðarbær",
+    r"\bpatreks(fj|fir)": "Vesturbyggð", r"\bbildudal": "Vesturbyggð", r"\btalkna(fj|fir)": "Vesturbyggð",
+    r"\bblonduos": "Húnabyggð", r"\bsaudarkrok": "Skagafjörður", r"\bsiglu(fj|fir)": "Fjallabyggð", r"\bolafs(fj|fir)": "Fjallabyggð",
+    r"\bakureyr": "Akureyrarbær", r"\bdalvik": "Dalvíkurbyggð",
+    r"\bhusavik": "Norðurþing", r"\braufarhofn": "Norðurþing", r"\bkopasker": "Norðurþing",
+    r"\breydar(fj|fir)": "Fjarðabyggð", r"\beski(fj|fir)": "Fjarðabyggð", r"\bneskaupstad": "Fjarðabyggð",
+    r"\bfaskruds(fj|fir)": "Fjarðabyggð", r"\bstodvar(fj|fir)": "Fjarðabyggð", r"\bbreiddalsvik": "Fjarðabyggð",
+    r"\bhorna(fj|fir)": "Sveitarfélagið Hornafjörður", r"\bvestmannaey": "Vestmannaeyjabær",
+    r"\bselfoss": "Sveitarfélagið Árborg", r"\beyrarbakk": "Sveitarfélagið Árborg", r"\bstokkseyr": "Sveitarfélagið Árborg",
+    r"\bhveragerd": "Hveragerðisbær", r"\bthorlakshofn": "Sveitarfélagið Ölfus",
+    r"\bhvolsvoll": "Rangárþing eystra", r"\bhella\b": "Rangárþing ytra",
+}
+
+# "Reykjavík í heild, ekki bara Breiðholt" á að fara í sveitarfélagatöfluna, ekki hverfatöfluna
+REYKJAVIK_WHOLE_PATTERNS = [r"\bi heild\b", r"\bekki bara\b", r"\bekki adeins\b", r"\ballri reykjavik", r"\breykjavik alls\b"]
+
+POPULATION_WORDS = ["bua", "ibua", "mannfjold", "population", "inhabitants", "live in"]
+
+
+def resolve_municipality(normalized_question: str) -> str | None:
+    """Skilar heiti sveitarfélags í MAN02005 ef spurningin nefnir þekkt (gamalt eða nýtt) staðarheiti."""
+    for pattern, name in MUNICIPALITY_ALIASES.items():
+        if re.search(pattern, normalized_question):
+            return name
+    return None
 
 
 def normalize(text: str) -> str:
@@ -32,6 +81,10 @@ def _get_collection():
 def find_best_table(question: str) -> dict:
     q = normalize(question)
 
+    # 0. Out of scope (weather, interest rates, property valuation) - reject before place names are seen
+    if any(re.search(p, q) for p in OUT_OF_SCOPE_PATTERNS):
+        return None
+
     # 1. Wage Index (check before generic 'visitala')
     if any(w in q for w in ["launavisital", "laun", "wage", "salary", "earnings", "kaupmatt"]):
         return TABLES[5]
@@ -45,15 +98,31 @@ def find_best_table(question: str) -> dict:
         return TABLES[6]
 
     # 4. Tourism and Passengers (SAM02001)
-    if any(w in q for w in ["ferdamenn", "ferdamann", "fartheg", "keflavik", "keflavikurflugvoll", "tourist", "passenger", "airport"]):
+    # Plain "Keflavík" in a population question means the town (Reykjanesbær), not the airport
+    asks_population = any(w in q for w in POPULATION_WORDS)
+    if any(w in q for w in ["ferdamenn", "ferdamann", "fartheg", "keflavikurflugv", "flugvoll", "tourist", "passenger", "airport"]):
+        return TABLES[7]
+    if "keflavik" in q and not asks_population:
         return TABLES[7]
 
     # 5. Internal Migration (MAN01002)
     if any(w in q for w in ["flutt", "buferla", "migration", "moved", "landshlut", "landsfjord"]):
         return TABLES[2]
 
-    # 6. Reykjavík Districts (MAN03270)
-    if any(w in q for w in ["hverfi", "vesturba", "midborg", "hlid", "laugardal", "breidholt", "grafarvog", "arba", "haaleit", "district", "neighborhood"]):
+    # 6a. Reykjavík as a whole, explicitly not one district (MAN02005)
+    if "reykjavik" in q and any(re.search(p, q) for p in REYKJAVIK_WHOLE_PATTERNS):
+        return TABLES[3]
+
+    # 6b. Old, merged or informal place names (Seyðisfjörður -> Múlaþing, Garður -> Suðurnesjabær, ...)
+    if resolve_municipality(q):
+        return TABLES[3]
+
+    # 6c. Reykjavík Districts (MAN03270) - word-start match so e.g. "Varmahlíð" doesn't hit "hlid"
+    district_words = [
+        "hverfi", "vesturba", "midborg", "hlid", "laugardal", "breidholt", "grafarvog", "grafarholt",
+        "ulfarsardal", "kjalarnes", "arba", "haaleit", "bustad", "district", "neighborhood",
+    ]
+    if any(re.search(r"\b" + w, q) for w in district_words):
         return TABLES[4]
 
     # 7. Municipalities (MAN02005)
