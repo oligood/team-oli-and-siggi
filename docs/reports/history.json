@@ -37,5 +37,20 @@
     "hallucination_free_pct": 77.8,
     "avg_latency_sec": 25.64,
     "note": "**Red Teaming:** 10 nýjar gildrur afhjúpuðu 7 veikleika í töfluvali."
+  },
+  {
+    "timestamp": "2026-11-01 16:05:47",
+    "answer_model": "llama3:70b",
+    "judge_model": "qwen2.5:72b",
+    "judge_enabled": true,
+    "total_tests": 27,
+    "epochs": 2,
+    "overall_pass_pct": 81.5,
+    "table_retrieval_pct": 100.0,
+    "action_match_pct": 96.3,
+    "hallucination_free_pct": 81.5,
+    "avg_latency_sec": 24.7,
+    "note": "Post-fix: search.py + px_api.py",
+    "archive": "reports/eval_qwen2.5-72b_27tests_20261101-160547.md"
   }
 ]
