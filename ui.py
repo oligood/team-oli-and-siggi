@@ -1,6 +1,8 @@
 import os
 import time
 import html
+import base64
+from pathlib import Path
 import requests
 import streamlit as st
 from backend import answer_question
@@ -32,13 +34,13 @@ st.markdown("""
     html, body {
         margin: 0 !important;
         padding: 0 !important;
-        background-color: #1A2E40 !important;
+        background-color: #243C54 !important;
     }
 
     .stApp,
     .stApp > .main,
     [data-testid="stAppViewContainer"] {
-        background-color: #1A2E40 !important;
+        background-color: #243C54 !important;
         font-family: 'Lora', Georgia, 'Times New Roman', serif;
     }
 
@@ -53,7 +55,7 @@ st.markdown("""
     }
 
     .page-header {
-        background: linear-gradient(160deg, #1e3347 0%, #0f1f2e 100%);
+        background: linear-gradient(160deg, #2A445E 0%, #1A2E40 100%);
         padding: 4rem 2rem 3rem 2rem;
         text-align: center;
         border-bottom: 3px solid #C5A059;
@@ -112,10 +114,11 @@ st.markdown("""
     }
 
     .chat-msg {
-        background: #FFFFFF;
-        border: 1px solid #DDD8D0;
+        background-color: #EAE3D6;
+        background-size: 420px;
+        border: 1px solid #CFC4B2;
         border-radius: 2px;
-        box-shadow: 0 1px 4px rgba(26,46,64,0.06);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.45);
         padding: 1rem 1.25rem;
         margin-bottom: 0.85rem;
     }
@@ -128,7 +131,7 @@ st.markdown("""
         text-transform: uppercase;
         color: #C5A059;
         margin-bottom: 0.45rem;
-        border-bottom: 1px solid #EDE8E1;
+        border-bottom: 1px solid rgba(160,130,80,0.25);
         padding-bottom: 0.35rem;
     }
 
@@ -149,12 +152,24 @@ st.markdown("""
 
     [data-testid="stBottom"],
     [data-testid="stBottom"] > div {
-        background-color: #1A2E40 !important;
-        border-top: 1px solid #C5A059 !important;
+        background-color: #243C54 !important;
+        border-top: none !important;
+    }
+
+    [data-testid="stBottom"]::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 220px;
+        height: 1.5px;
+        background: linear-gradient(90deg, rgba(197,160,89,0) 0%, #C5A059 50%, rgba(197,160,89,0) 100%);
+        z-index: 1;
     }
 
     [data-testid="stChatInput"] > div {
-        background: #0f1f2e !important;
+        background: #1A2E40 !important;
         border: 1.5px solid #C5A059 !important;
         border-radius: 2px !important;
         box-shadow: none !important;
@@ -266,6 +281,17 @@ st.markdown("""
     }
 </style>
 """, unsafe_allow_html=True)
+
+# Marmara Hueso flísaráferð á spurningar- og svarkassana
+_marble = Path(__file__).parent / "assets" / "marmara_hueso.jpg"
+if _marble.exists():
+    _b64 = base64.b64encode(_marble.read_bytes()).decode()
+    st.markdown(
+        "<style>.chat-msg { background-image: "
+        "linear-gradient(rgba(244,238,228,0.35), rgba(232,224,210,0.35)), "
+        f"url('data:image/jpeg;base64,{_b64}'); }}</style>",
+        unsafe_allow_html=True,
+    )
 
 st.markdown("""
 <div class="page-header">
