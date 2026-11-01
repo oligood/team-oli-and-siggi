@@ -10,7 +10,7 @@ from backend import answer_question
 BACKEND_URL = os.getenv("BACKEND_URL", "http://127.0.0.1:8000/query")
 
 st.set_page_config(
-    page_title="Gagnasvarari — Hagstofa Íslands",
+    page_title="Gagnasvarari — byggt á gögnum Hagstofu Íslands",
     layout="centered",
     initial_sidebar_state="collapsed",
 )
@@ -307,10 +307,10 @@ if _marble.exists():
 
 st.markdown("""
 <div class="page-header">
-    <div class="institution-label">Hagstofa Íslands &nbsp;&middot;&nbsp; Statistics Iceland</div>
+    <div class="institution-label">Byggt á opnum gögnum Hagstofu Íslands &nbsp;&middot;&nbsp; Gagnvist 2026</div>
     <div class="main-title">Gagnasvarari</div>
     <div class="header-rule"></div>
-    <div class="sub-title">Opinbert spjallviðmót fyrir tölfræðilegar fyrirspurnir</div>
+    <div class="sub-title">Spjallviðmót fyrir tölfræðilegar fyrirspurnir &middot; Teymi Óli &amp; Siggi</div>
 </div>
 """, unsafe_allow_html=True)
 
