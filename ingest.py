@@ -94,6 +94,30 @@ TABLES = [
         "url": "https://px.hagstofa.is/pxis/api/v1/is/Samfelag/vinnumarkadur/vinnumarkadsrannsokn/2_arsfjordungstolur/VIN00920.px",
         "keywords": "atvinnuleysi ársfjórðungur unemployment quarter",
     },
+    {
+        "id": "SAM03105",
+        "title": "Skrásett ökutæki í árslok (Registered motor vehicles at year end)",
+        "url": "https://px.hagstofa.is/pxis/api/v1/is/Umhverfi/5_samgongur/3_okutaekiogvegir/1_okutaeki/SAM03105.px",
+        "keywords": "fólksbílar fólksbifreiðar ökutæki bílar passenger cars vehicles",
+    },
+    {
+        "id": "VIS13000",
+        "title": "Byggingarvísitala (Building cost index, base 2021=100)",
+        "url": "https://px.hagstofa.is/pxis/api/v1/is/Efnahagur/visitolur/2_byggingarvisitala/byggingarvisitala/VIS13000.px",
+        "keywords": "byggingarvísitala vísitala byggingarkostnaðar building cost index",
+    },
+    {
+        "id": "VIS01106",
+        "title": "Vísitala markaðsverðs íbúðarhúsnæðis (Residential property market price index)",
+        "url": "https://px.hagstofa.is/pxis/api/v1/is/Efnahagur/visitolur/1_vnv/3_greiningarvisitolur/VIS01106.px",
+        "keywords": "íbúðaverð vísitala íbúðaverðs markaðsverð íbúðarhúsnæðis house price index",
+    },
+    {
+        "id": "SJA09005",
+        "title": "Afli íslenskra fiskiskipa eftir fisktegundum (Catch of Icelandic vessels by species)",
+        "url": "https://px.hagstofa.is/pxis/api/v1/is/Atvinnuvegir/sjavarutvegur/aflatolur/fiskveidisvaedi/SJA09005.px",
+        "keywords": "afli fiskiskip veiði þorskur loðna síld catch fish fishing",
+    },
 ]
 
 TABLES_BY_ID = {t["id"]: t for t in TABLES}

@@ -38,6 +38,9 @@
   {"query": "How many people live in the Breiðholt district of Reykjavík?", "expected_table": "MAN03270", "expected_action": "FETCH_LATEST", "expected_in_data": ["Breiðholt"]},
   {"query": "How many people live in the Westman Islands?", "expected_table": "MAN02005", "expected_action": "FETCH_LATEST", "expected_in_data": ["Vestmannaeyjabær"]},
   {"query": "Hver er meðalaldur Íslendinga?", "expected_table": "NONE", "expected_action": "REJECT"},
-  {"query": "Hvað eru margir bílar á Íslandi?", "expected_table": "NONE", "expected_action": "REJECT"},
-  {"query": "Hver var verðbólgan í Reykjavík í júní 2024?", "expected_table": "VIS01002", "expected_action": "FETCH_SPECIFIC", "expected_in_data": ["2024M06"]}
+  {"query": "Hvað eru margir bílar á Íslandi?", "expected_table": "SAM03105", "expected_action": "FETCH_LATEST"},
+  {"query": "Hver var verðbólgan í Reykjavík í júní 2024?", "expected_table": "VIS01002", "expected_action": "FETCH_SPECIFIC", "expected_in_data": ["2024M06"]},
+  {"query": "How many more passenger cars were there in Iceland at the end of 2025 than at the end of 2024?", "expected_table": "SAM03105", "expected_action": "FETCH_SPECIFIC", "expected_in_data": ["Ár: 2024", "Ár: 2025", "Fólksbifreiðar"]},
+  {"query": "What was Iceland's building cost index in September 2026?", "expected_table": "VIS13000", "expected_action": "FETCH_SPECIFIC", "expected_in_data": ["2026M09"]},
+  {"query": "Hversu mörg tonn veiddu íslensk fiskiskip samtals árið 2024?", "expected_table": "SJA09005", "expected_action": "FETCH_SPECIFIC", "expected_in_data": ["Ár: 2024", "Heildarafli"]}
 ]

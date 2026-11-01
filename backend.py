@@ -218,14 +218,14 @@ def answer_question(question: str) -> dict:
                 "Sorry, I could not find an official Statistics Iceland table matching this query. "
                 "I can currently provide statistics for the Consumer Price Index (inflation), population figures, "
                 "municipalities, Reykjavík districts, internal migration, the wage index, unemployment rates, "
-                "airport passenger traffic, births, immigrants, GDP, overnight stays and past presidential elections."
+                "airport passenger traffic, births, immigrants, GDP, overnight stays, past presidential elections, registered cars, the building cost index, house prices and fish catch."
             )
         else:
             msg = (
                 "Því miður hef ég ekki aðgang að opinberri Hagstofutöflu sem svarar þessari fyrirspurn. "
                 "Ég hef aðgang að opinberum tölum um vísitölu neysluverðs (verðbólgu), lykiltölur mannfjölda, "
                 "sveitarfélög, hverfi í Reykjavík, búferlaflutninga, launavísitölu, atvinnuleysi, farþega um Keflavíkurflugvöll, "
-                "fæðingar, innflytjendur, landsframleiðslu, gistinætur og eldri forsetakosningar."
+                "fæðingar, innflytjendur, landsframleiðslu, gistinætur, eldri forsetakosningar, skráðar fólksbifreiðar, byggingarvísitölu, íbúðaverð og afla fiskiskipa."
             )
         return {
             "ok": False,

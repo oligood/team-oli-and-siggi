@@ -12,8 +12,8 @@ _collection = None
 OUT_OF_SCOPE_PATTERNS = [
     r"\bvedur", r"\bvedri", r"\bhiti\b", r"\bhitinn\b", r"\bhitastig", r"\brign", r"\bsnjo",
     r"\bstyrivext", r"\bstyrivaxt", r"\bvextir\b", r"\bvexti\b", r"\bsedlabank",
-    r"\bfasteignamat", r"\bfasteignaverd", r"\bibudaverd",
-    r"\bweather\b", r"\btemperature\b", r"\binterest rate", r"\bcentral bank", r"\bproperty value", r"\bhouse price",
+    r"\bfasteignamat", r"\bfasteignaverd",
+    r"\bweather\b", r"\btemperature\b", r"\binterest rate", r"\bcentral bank", r"\bproperty value",
     # Forecasts: Hagstofa publishes measurements, not predictions
     r"\bverdur\b", r"\bspa(in|r)?\b", r"\bforecast", r"\bwill be\b", r"\bpredict",
 ]
@@ -57,6 +57,12 @@ TOPIC_TABLES = [
     ("THJ01102", [r"\blandsframleidsl", r"\bgdp\b", r"\bgross domestic"]),
     ("SAM01601", [r"\bgistin", r"\bovernight"]),
     ("MAN43000", [r"\binnflytj", r"\bimmigrant"]),
+    # "passenger cars" must not reach the airport-passenger rule further down
+    ("SAM03105", [r"\bfolksbil", r"\bfolksbifreid", r"\bbil(ar|a|um|anna)?\b", r"\bbifreid", r"\bokutaek", r"\bpassenger cars?\b",
+                  r"\bcars?\b", r"\bvehicles?\b"]),
+    ("VIS13000", [r"\bbyggingarvisital", r"\bbyggingarkostn", r"\bbuilding cost"]),
+    ("VIS01106", [r"\bibudaverd", r"\bmarkadsverd", r"\bhouse price", r"\bhousing price", r"\bresidential property"]),
+    ("SJA09005", [r"\bafli\b", r"\baflinn\b", r"\bafla\b", r"\bveidd", r"\bfiskiskip", r"\bcatch\b", r"\bfishing\b"]),
 ]
 
 SEX_PATTERN = r"\b(karl|kon(a|u|ur|um)\b|men\b|women\b|male|female)"

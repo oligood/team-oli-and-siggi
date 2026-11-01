@@ -51,8 +51,12 @@ Question ──► search.py ──► px_api.py ──► backend.py ───�
 | `SAM01601` | Overnight stays in registered accommodation |
 | `KOS07112` | Presidential elections 1952–1996 |
 | `VIN00920` | Unemployment by quarter |
+| `SAM03105` | Registered vehicles at year end (passenger cars) |
+| `VIS13000` | Building cost index |
+| `VIS01106` | Residential property market price index |
+| `SJA09005` | Catch of Icelandic fishing vessels by species |
 
-The last seven are driven by a declarative spec (`TABLE_SPECS` in `px_api.py`), so a new table is a few lines of configuration. On top of the fetched figures the system computes what a question asks for: the change and % change between periods, a share of a total, sums and differences, and ratios across tables ("births per 1,000 inhabitants"). Questions that need two tables ("the wage index and the CPI in August 2026") are split and each part is answered from its own table.
+The last eleven are driven by a declarative spec (`TABLE_SPECS` in `px_api.py`), so a new table is a few lines of configuration. On top of the fetched figures the system computes what a question asks for: the change and % change between periods, a share of a total, sums and differences, and ratios across tables ("births per 1,000 inhabitants"). Questions that need two tables ("the wage index and the CPI in August 2026") are split and each part is answered from its own table.
 
 ## Evaluation
 
@@ -76,7 +80,7 @@ python3 scripts/eval_gagnvist.py --no-llm   # template answers only (fast retrie
 
 ### Our own stress tests
 
-`optimize_agents.py` runs the test suite in [`stress_tests.json`](stress_tests.json) (41 questions) and measures, per question:
+`optimize_agents.py` runs the test suite in [`stress_tests.json`](stress_tests.json) (44 questions) and measures, per question:
 
 - **Table Match**: the right Hagstofa table was chosen.
 - **Action Match**: out-of-scope questions are rejected, the others fetch data.
@@ -140,7 +144,7 @@ Public link for a demo: `cloudflared tunnel --url http://localhost:8501`.
 | `px_api.py` | PX-Web query building, fetching and factual summaries |
 | `number_guard.py` | Deterministic number verification |
 | `optimize_agents.py` | Evaluation runner and report generator |
-| `stress_tests.json` | 41 test questions with expected table, action and data |
+| `stress_tests.json` | 44 test questions with expected table, action and data |
 | `questions/gagnvist_examples.jsonl` | The 60 official Gagnvist example questions |
 | `scripts/eval_gagnvist.py` | Scores the official questions with the `gagnvist evaluate` rules |
 | `docs/EVALUATION_REPORT.md` | Leaderboard, red-team analysis, fixes |

@@ -101,6 +101,25 @@ TABLE_SPECS = {
         "match": {"Kyn": [(MEN_PATTERN, "Karlar"), (WOMEN_PATTERN, "Konur")]},
         "what_is": "Atvinnuleysi, % af vinnuafli", "what_en": "Unemployment rate, % of labour force",
     },
+    "SAM03105": {
+        "time": "Ár", "defaults": {"Ökutæki": "M1"},
+        "what_is": "Skráðar fólksbifreiðar í árslok", "what_en": "Registered passenger cars at year end",
+    },
+    "VIS13000": {
+        "time": "Mánuður", "time_kind": "month", "defaults": {"Liður": "BCI"},
+        "what_is": "Vísitala byggingarkostnaðar", "what_en": "Building cost index",
+    },
+    "VIS01106": {
+        "time": "Mánuður", "time_kind": "month", "defaults": {"Vísitala": "RI_total"},
+        "what_is": "Vísitala markaðsverðs íbúðarhúsnæðis, landið allt",
+        "what_en": "Residential property market price index, whole country",
+    },
+    "SJA09005": {
+        "time": "Ár", "defaults": {"Fisktegund": "0"},
+        "match": {"Fisktegund": [(r"\b(thorsk|cod\b)", "1"), (r"\b(ysa|ysu|haddock)", "2"), (r"\b(ufsi|saithe)", "3"),
+                                 (r"\b(karfi|redfish)", "4"), (r"\b(sild|herring)", "5"), (r"\b(lodna|lodnu|capelin)", "6")]},
+        "what_is": "Afli íslenskra fiskiskipa (tonn)", "what_en": "Catch of Icelandic fishing vessels (tonnes)",
+    },
 }
 
 QUARTER_WORDS = {
@@ -804,7 +823,12 @@ def fetch_table_data(table_url: str, question: str) -> dict:
             v_vals = var.get("values", [])
             v_texts = var.get("valueTexts", [])
             if v_code == spec["time"]:
-                if spec.get("time_kind") == "quarter":
+                if spec.get("time_kind") == "month":
+                    kind, sel = _requested_months(q_clean, years, v_vals)
+                    if kind == "years":
+                        # A year without a month: its last published month
+                        sel = [max(v for v in v_vals if v.startswith(f"{y}M")) for y in sel]
+                elif spec.get("time_kind") == "quarter":
                     sel = [f"{y}Q{n}" for y in dict.fromkeys(years) for n, pat in QUARTER_WORDS.items()
                            if re.search(pat, q_clean) and f"{y}Q{n}" in v_vals]
                 else:
@@ -907,7 +931,11 @@ def fetch_table_data(table_url: str, question: str) -> dict:
 
     elif table_code in TABLE_SPECS:
         spec = TABLE_SPECS[table_code]
-        varying = {q["code"] for q in query_list if len(q["selection"]["values"]) > 1} - {spec["time"]}
+        # Label a row by every variable that was chosen from the question (several values, or not the default)
+        varying = {q["code"] for q in query_list
+                   if len(q["selection"]["values"]) > 1
+                   or q["selection"]["values"] != [spec["defaults"].get(q["code"])]} - {spec["time"]}
+        varying -= set(spec.get("score", []))
         entries = []
         for r in rows:
             k = dict(zip(var_codes, r.get("key", [])))
