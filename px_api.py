@@ -1,8 +1,9 @@
 import re
+import time
 import unicodedata
 import requests
 
-from search import resolve_municipality
+from search import resolve_municipality, is_part_of_larger_municipality
 
 SVAEDA_MAPPING = {
     "hofudborgarsvaed": "1",
@@ -144,14 +145,25 @@ def format_facts_to_natural_language(table_code: str, title: str, question: str,
         muni_code = keys[0] if keys else ""
         muni_name = label_lookup.get("Sveitarfélag", {}).get(muni_code, "sveitarfélaginu")
         year = keys[2] if len(keys) > 2 else "2026"
+        # Asked about a town inside a merged municipality: say plainly there is no separate figure,
+        # so the model has no gap to fill with a number of its own
+        part_of = is_part_of_larger_municipality(hreinsa_texta(question))
         if is_en:
+            note = (
+                f" The place asked about is part of the municipality of {muni_name}; Statistics Iceland does not "
+                f"publish a separate population figure for it in this table, only for {muni_name} as a whole."
+            ) if part_of else ""
             return (
                 f"According to Statistics Iceland (table {table_code}), the population of {muni_name} "
-                f"was {format_num(val, False)} as of January 1, {year}."
+                f"was {format_num(val, False)} as of January 1, {year}.{note}"
             )
+        note = (
+            f" Staðurinn sem spurt er um tilheyrir sveitarfélaginu {muni_name}. Hagstofan birtir ekki sérstaka "
+            f"mannfjöldatölu fyrir hann í þessari töflu, aðeins fyrir sveitarfélagið í heild."
+        ) if part_of else ""
         return (
             f"Samkvæmt mannfjöldatölum Hagstofu Íslands (tafla {table_code}) bjuggu {format_num(val, True)} "
-            f"manns í {muni_name} þann 1. janúar {year}."
+            f"manns í {muni_name} þann 1. janúar {year}.{note}"
         )
 
     elif table_code == "MAN03270":
@@ -173,15 +185,45 @@ def format_facts_to_natural_language(table_code: str, title: str, question: str,
     elif table_code == "MAN01002":
         total = computed.get("total_migration", 0)
         year = rows[0]["key"][1] if rows and len(rows[0].get("key", [])) > 1 else "2024"
+
+        # Name the origin/destination regions and give the per-region breakdown, so the
+        # answer states exactly what was summed instead of "between the selected regions"
+        origins, dests, parts = [], [], []
+        for r in rows:
+            labels = [label_lookup.get(var_codes[i], {}).get(k, k) for i, k in enumerate(r.get("key", [])) if i < len(var_codes)]
+            origin = next((l.rsplit(" - ", 1)[0] for l in labels if l.endswith("brottfluttir")), "")
+            dest = next((l.rsplit(" - ", 1)[0] for l in labels if l.endswith("aðfluttir")), "")
+            origins.append(origin)
+            dests.append(dest)
+            if r.get("values"):
+                parts.append((origin, dest, r["values"][0]))
+        single_dest = dests[0] if dests and len(set(dests)) == 1 else ""
+        single_origin = origins[0] if origins and len(set(origins)) == 1 else ""
+
         if is_en:
-            return (
-                f"According to Statistics Iceland regional migration records (table {table_code}), "
-                f"a total of {format_num(total, False)} people moved between the selected regions in {year}."
-            )
-        return (
-            f"Samkvæmt búferlaflutningatölum Hagstofu Íslands (tafla {table_code}) fluttu alls "
-            f"{format_num(total, True)} manns á milli tilgreindra svæða árið {year}."
-        )
+            if single_dest and not single_origin:
+                head = f"{format_num(total, False)} people moved to {single_dest} from other regions of Iceland in {year}"
+                breakdown = "; ".join(f"{o}: {format_num(v, False)}" for o, _, v in parts)
+            elif single_origin and not single_dest:
+                head = f"{format_num(total, False)} people moved from {single_origin} to other regions of Iceland in {year}"
+                breakdown = "; ".join(f"{d}: {format_num(v, False)}" for _, d, v in parts)
+            else:
+                head = f"{format_num(total, False)} people moved from {single_origin or 'the selected regions'} to {single_dest or 'the selected regions'} in {year}"
+                breakdown = ""
+            tail = f" Breakdown: {breakdown}." if breakdown and len(parts) > 1 else ""
+            return f"According to Statistics Iceland regional migration records (table {table_code}), {head}.{tail}"
+
+        if single_dest and not single_origin:
+            head = f"fluttu {format_num(total, True)} manns til svæðisins {single_dest} frá öðrum landshlutum árið {year}"
+            breakdown = "; ".join(f"frá {o}: {format_num(v, True)}" for o, _, v in parts)
+        elif single_origin and not single_dest:
+            head = f"fluttu {format_num(total, True)} manns frá svæðinu {single_origin} til annarra landshluta árið {year}"
+            breakdown = "; ".join(f"til {d}: {format_num(v, True)}" for _, d, v in parts)
+        else:
+            head = f"fluttu {format_num(total, True)} manns frá {single_origin or 'tilgreindum svæðum'} til {single_dest or 'tilgreindra svæða'} árið {year}"
+            breakdown = ""
+        tail = f" Sundurliðun: {breakdown}." if breakdown and len(parts) > 1 else ""
+        return f"Samkvæmt búferlaflutningatölum Hagstofu Íslands (tafla {table_code}) {head}.{tail}"
 
     elif table_code == "LAU04000":
         idx_val = computed.get("wage_index", "N/A")
@@ -234,6 +276,19 @@ def format_facts_to_natural_language(table_code: str, title: str, question: str,
     return f"Samkvæmt töflu {table_code} ({title}) hjá Hagstofu Íslands: {computed.get('raw_summary', '')}"
 
 
+def _request_with_retry(method: str, url: str, retries: int = 2, **kwargs) -> requests.Response:
+    """PX-API occasionally returns 429/5xx or drops the connection; retry those with a short backoff."""
+    for attempt in range(retries + 1):
+        try:
+            res = requests.request(method, url, **kwargs)
+            if res.status_code not in (429, 500, 502, 503, 504) or attempt == retries:
+                return res
+        except requests.RequestException:
+            if attempt == retries:
+                raise
+        time.sleep(1.5 * (attempt + 1))
+
+
 def fetch_table_data(table_url: str, question: str) -> dict:
     headers = {
         "Accept": "application/json",
@@ -242,7 +297,7 @@ def fetch_table_data(table_url: str, question: str) -> dict:
     }
 
     try:
-        meta_res = requests.get(table_url, headers=headers, timeout=15)
+        meta_res = _request_with_retry("GET", table_url, headers=headers, timeout=15)
         if meta_res.status_code != 200:
             return {"ok": False, "error": f"Failed to fetch metadata (status {meta_res.status_code})."}
         metadata = meta_res.json()
@@ -451,7 +506,8 @@ def fetch_table_data(table_url: str, question: str) -> dict:
                 query_list.append({"code": v_code, "selection": {"filter": "item", "values": [v_vals[0]]}})
 
     try:
-        data_res = requests.post(
+        data_res = _request_with_retry(
+            "POST",
             table_url,
             json={"query": query_list, "response": {"format": "json"}},
             headers=headers,

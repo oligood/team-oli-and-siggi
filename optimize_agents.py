@@ -18,7 +18,8 @@ import time
 import requests
 from search import find_best_table
 from px_api import fetch_table_data
-from backend import generate_llm_answer, answer_question, MODEL_NAME
+from backend import generate_verified_answer, answer_question, MODEL_NAME
+from number_guard import extract_answer_numbers, extract_allowed_numbers
 
 STRESS_TESTS_FILE = os.getenv("STRESS_TESTS_FILE", "stress_tests.json")
 JUDGE_OLLAMA_URL = os.getenv("JUDGE_OLLAMA_URL", os.getenv("OLLAMA_URL", "http://localhost:11434/api/generate"))
@@ -55,66 +56,6 @@ def load_stress_tests(file_path: str = STRESS_TESTS_FILE) -> list:
             if line:
                 cases.append(json.loads(line))
         return cases
-
-
-def extract_answer_numbers(text: str) -> set:
-    """Extracts all numeric tokens from natural language text, normalizing decimals & thousands."""
-    # Convert date ordinals like "1. janúar" -> "1 janúar"
-    clean_text = re.sub(r"(\d+)\.\s*(?=[a-zA-ZáéíóúýþæöÁÉÍÓÚÝÞÆÖ])", r"\1 ", str(text))
-    tokens = re.findall(r"\b\d+(?:[\.,]\d+)*\b", clean_text)
-    nums = set()
-
-    for tok in tokens:
-        # Icelandic thousands with dot: 40.286 or 394.324
-        if re.match(r"^\d{1,3}(?:\.\d{3})+$", tok):
-            nums.add(round(float(tok.replace(".", "")), 2))
-        # English thousands with comma: 40,286
-        elif re.match(r"^\d{1,3}(?:,\d{3})+$", tok):
-            nums.add(round(float(tok.replace(",", "")), 2))
-        # Icelandic decimal with comma: 5,90 or 700,40
-        elif re.match(r"^\d+,\d+$", tok):
-            nums.add(round(float(tok.replace(",", ".")), 2))
-        # English decimal with dot: 5.90 or 700.40
-        elif re.match(r"^\d+\.\d{1,2}$", tok):
-            nums.add(round(float(tok), 2))
-        else:
-            try:
-                nums.add(round(float(tok), 2))
-            except ValueError:
-                pass
-    return nums
-
-
-def extract_allowed_numbers(api_res: dict, query: str = "") -> set:
-    """Extracts all legitimate numbers present in raw Hagstofa API data, computed metrics, and question."""
-    allowed = {1.0, 12.0}  # Common context constants (1st of month, 12-month change)
-
-    data_str = (
-        str(api_res.get("facts", []))
-        + " "
-        + str(api_res.get("computed", {}))
-        + " "
-        + str(api_res.get("query_used", []))
-        + " "
-        + str(query)
-    )
-
-    for tok in re.findall(r"\b\d+(?:[\.,]\d+)*\b", data_str):
-        clean = tok.replace(",", ".")
-        try:
-            allowed.add(round(float(clean), 2))
-        except ValueError:
-            pass
-
-    for d in re.findall(r"\d+", data_str):
-        allowed.add(round(float(d), 2))
-
-    # Include digits from table ID (e.g. MAN02005 -> 2005, 2005.0)
-    table_id = api_res.get("table_id", "")
-    for d in re.findall(r"\d+", table_id):
-        allowed.add(round(float(d), 2))
-
-    return allowed
 
 
 def evaluate_hallucinations(answer: str, api_result: dict, query: str) -> dict:
@@ -202,6 +143,8 @@ class StressTestRunner:
             judge_feedback = {"active": False, "verdict": "SKIPPED"}
             final_answer = ""
             raw_facts = ""
+            guard_status = "–"
+            rejected_numbers = []
 
             if expected_action == "REJECT":
                 # System must reject out-of-domain queries gracefully
@@ -217,20 +160,23 @@ class StressTestRunner:
                     api_res = fetch_table_data(matched_tbl["url"], query)
                     action_pass = api_res.get("ok", False)
                     raw_facts = api_res.get("summary", "")
-                    
-                    final_answer = generate_llm_answer(
-                        question=query,
-                        table_title=api_res.get("title", ""),
-                        table_id=matched_id,
-                        facts_summary=raw_facts,
-                    )
 
-                    # 3. Check for Hallucinated Numbers
-                    hallucination_result = evaluate_hallucinations(final_answer, api_res, query)
+                    if action_pass:
+                        # Same guarded path as production (backend.answer_question)
+                        verified = generate_verified_answer(query, api_res)
+                        final_answer = verified["answer"]
+                        guard_status = verified["guard"]
+                        rejected_numbers = verified["rejected_numbers"]
 
-                    # 4. LLM-as-a-Judge (if enabled or available on Spark)
-                    if ENABLE_LLM_JUDGE:
-                        judge_feedback = call_llm_as_a_judge(raw_facts, final_answer, query)
+                        # 3. Check for Hallucinated Numbers
+                        hallucination_result = evaluate_hallucinations(final_answer, api_res, query)
+
+                        # 4. LLM-as-a-Judge (if enabled or available on Spark)
+                        if ENABLE_LLM_JUDGE:
+                            judge_feedback = call_llm_as_a_judge(raw_facts, final_answer, query)
+                    else:
+                        # No data -> no LLM call, like the backend (an empty prompt only invites made-up numbers)
+                        final_answer = f"Ekki tókst að sækja gögn: {api_res.get('error', 'óþekkt villa')}"
 
             if action_pass:
                 action_matches += 1
@@ -250,6 +196,7 @@ class StressTestRunner:
                 f"Tafla: {matched_id} (búist við: {expected_table}) | "
                 f"Action: {expected_action} ({'OK' if action_pass else 'FAIL'}) | "
                 f"Hallucination: {'0' if hallu_pass else 'FAIL ' + str(hallucination_result['hallucinated_numbers'])} "
+                f"| Vörður: {guard_status}{' ' + str(rejected_numbers) if rejected_numbers else ''} "
                 f"[{dur:.2f}s]"
             )
 
@@ -263,6 +210,8 @@ class StressTestRunner:
                 "hallucination_free": hallu_pass,
                 "hallucinated_numbers": hallucination_result["hallucinated_numbers"],
                 "judge_verdict": judge_feedback["verdict"],
+                "guard": guard_status,
+                "rejected_numbers": rejected_numbers,
                 "overall_pass": overall_pass,
                 "latency_sec": round(dur, 3),
                 "answer": final_answer,
@@ -273,6 +222,8 @@ class StressTestRunner:
         hallu_free_pct = round((hallucination_passes / total) * 100, 1)
         avg_latency = round(sum(latencies) / len(latencies), 2) if latencies else 0.0
         overall_passes = sum(1 for d in epoch_details if d["overall_pass"])
+        guard_retries = sum(1 for d in epoch_details if d["guard"] == "retried")
+        guard_fallbacks = sum(1 for d in epoch_details if d["guard"] == "fallback")
 
         summary = {
             "epoch": epoch_num,
@@ -282,6 +233,8 @@ class StressTestRunner:
             "action_match_pct": action_accuracy,
             "hallucination_free_pct": hallu_free_pct,
             "avg_latency_sec": avg_latency,
+            "guard_retries": guard_retries,
+            "guard_fallbacks": guard_fallbacks,
             "details": epoch_details,
         }
 
@@ -289,6 +242,7 @@ class StressTestRunner:
         print(f"• Table Match Accuracy       : {table_accuracy}% ({table_matches}/{total})")
         print(f"• Expected Action & Payload  : {action_accuracy}% ({action_matches}/{total})")
         print(f"• Zero Hallucinated Numbers  : {hallu_free_pct}% ({hallucination_passes}/{total})")
+        print(f"• Talnavörður greip inn í    : {guard_retries + guard_fallbacks} ({guard_retries} endurtekið, {guard_fallbacks} sniðmát)")
         print(f"• Meðalviðbragðstími         : {avg_latency} sek")
         return summary
 
@@ -318,21 +272,21 @@ def render_run_details(run: dict, epochs: list, test_cases: list) -> str:
         "",
         "#### Niðurstöður yfir Epochs",
         "",
-        "| Epoch | Heildarárangur | Table Match | Action / API Match | Zero Hallucinated Numbers | Meðaltími |",
-        "| :--- | :--- | :--- | :--- | :--- | :--- |",
+        "| Epoch | Heildarárangur | Table Match | Action / API Match | Zero Hallucinated Numbers | Talnavörður (endurtekið / sniðmát) | Meðaltími |",
+        "| :--- | :--- | :--- | :--- | :--- | :--- | :--- |",
     ]
     for h in epochs:
         lines.append(
             f"| {h['epoch']} | {h['overall_pass_pct']}% | {h['table_retrieval_pct']}% | {h['action_match_pct']}% "
-            f"| {h['hallucination_free_pct']}% | {h['avg_latency_sec']}s |"
+            f"| {h['hallucination_free_pct']}% | {h.get('guard_retries', 0)} / {h.get('guard_fallbacks', 0)} | {h['avg_latency_sec']}s |"
         )
 
     lines += [
         "",
         f"#### Sundurliðun prófa (epoch {epochs[-1]['epoch']})",
         "",
-        "| # | Niðurstaða | Spurning | Tafla (vænt) | Action | Ofskynjaðar tölur | Dómari |",
-        "| :--- | :--- | :--- | :--- | :--- | :--- | :--- |",
+        "| # | Niðurstaða | Spurning | Tafla (vænt) | Action | Ofskynjaðar tölur | Talnavörður | Dómari |",
+        "| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |",
     ]
     for idx, d in enumerate(epochs[-1]["details"], 1):
         table_cell = f"`{d['matched_table']}`"
@@ -340,9 +294,12 @@ def render_run_details(run: dict, epochs: list, test_cases: list) -> str:
             table_cell += f" (vænt `{d['expected_table']}`)"
         hallu_cell = ", ".join(str(n) for n in d["hallucinated_numbers"]) if d["hallucinated_numbers"] else "–"
         query = d["query"].replace("|", "\\|")
+        guard_cell = d.get("guard", "–")
+        if d.get("rejected_numbers"):
+            guard_cell += " (hafnaði " + ", ".join(f"{n:g}" for n in d["rejected_numbers"]) + ")"
         lines.append(
             f"| {idx} | {_pass_mark(d['overall_pass'])} | {query} | {table_cell} "
-            f"| `{d['expected_action']}` {_pass_mark(d['action_pass'])} | {hallu_cell} | {d['judge_verdict']} |"
+            f"| `{d['expected_action']}` {_pass_mark(d['action_pass'])} | {hallu_cell} | {guard_cell} | {d['judge_verdict']} |"
         )
     return "\n".join(lines) + "\n"
 
@@ -356,6 +313,8 @@ def render_leaderboard(history: list) -> str:
         judge = f"`{h['judge_model']}`" if h.get("judge_enabled") else "– (óvirkur)"
         test_set = h.get("test_set") or f"{h['total_tests']} próf"
         note = h.get("note", "")
+        if h.get("guard_interventions"):
+            note = f"{note} Talnavörður greip inn í {h['guard_interventions']} svar.".strip()
         if h.get("archive"):
             note = f"{note} ([skýrsla]({h['archive']}))".strip()
         lines.append(
@@ -395,6 +354,7 @@ def save_reports(epochs: list, test_cases: list) -> None:
         "action_match_pct": final["action_match_pct"],
         "hallucination_free_pct": final["hallucination_free_pct"],
         "avg_latency_sec": final["avg_latency_sec"],
+        "guard_interventions": final.get("guard_retries", 0) + final.get("guard_fallbacks", 0),
         "note": RUN_NOTE,
     }
 

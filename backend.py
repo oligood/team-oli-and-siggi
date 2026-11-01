@@ -4,13 +4,14 @@ import requests
 
 from search import find_best_table
 from px_api import fetch_table_data, is_english_query
+from number_guard import find_unsupported_numbers
 
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://10.10.40.6:11434/api/generate")
 MODEL_NAME = os.getenv("OLLAMA_MODEL", "llama3:70b")
 ollama_lock = Lock()
 
 
-def generate_llm_answer(question: str, table_title: str, table_id: str, facts_summary: str) -> str:
+def generate_llm_answer(question: str, table_title: str, table_id: str, facts_summary: str, correction: str = "") -> str:
     is_en = is_english_query(question)
     
     if is_en:
@@ -32,6 +33,7 @@ def generate_llm_answer(question: str, table_title: str, table_id: str, facts_su
         f"{system_prompt}\n\n"
         f"Tafla: {table_id} - {table_title}\n"
         f"Gögn frá Hagstofu: {facts_summary}\n\n"
+        f"{correction}"
         f"Spurning: {question}\nSvar:"
     )
     payload = {
@@ -52,6 +54,48 @@ def generate_llm_answer(question: str, table_title: str, table_id: str, facts_su
         pass
 
     return facts_summary
+
+
+def generate_verified_answer(question: str, api_result: dict) -> dict:
+    """
+    Number guard around the LLM: every number in the answer must appear in the
+    Hagstofa API response. On a violation the model gets one retry with the
+    offending numbers named; if it still invents numbers, the deterministic
+    template summary (built directly from the API data) is returned instead.
+
+    guard: "ok" (first answer clean), "retried" (second answer clean) or "fallback".
+    """
+    is_en = is_english_query(question)
+    kwargs = {
+        "question": question,
+        "table_title": api_result.get("title", ""),
+        "table_id": api_result.get("table_id", ""),
+        "facts_summary": api_result.get("summary", ""),
+    }
+
+    answer = generate_llm_answer(**kwargs)
+    bad = find_unsupported_numbers(answer, api_result, question)
+    if not bad:
+        return {"answer": answer, "guard": "ok", "rejected_numbers": []}
+
+    bad_txt = ", ".join(f"{n:g}" for n in bad)
+    if is_en:
+        correction = (
+            f"IMPORTANT: A previous answer contained numbers that are not in the data ({bad_txt}). "
+            "Use only numbers that appear in the data above. If the data does not cover exactly what was asked, "
+            "say so and give the figure the data does contain.\n\n"
+        )
+    else:
+        correction = (
+            f"MIKILVÆGT: Fyrra svar innihélt tölur sem eru ekki í gögnunum ({bad_txt}). "
+            "Notaðu eingöngu tölur sem koma fram í gögnunum hér að ofan. Ef gögnin ná ekki nákvæmlega yfir það "
+            "sem spurt var um, segðu það og nefndu töluna sem gögnin innihalda.\n\n"
+        )
+    answer = generate_llm_answer(**kwargs, correction=correction)
+    if not find_unsupported_numbers(answer, api_result, question):
+        return {"answer": answer, "guard": "retried", "rejected_numbers": bad}
+
+    return {"answer": api_result.get("summary", ""), "guard": "fallback", "rejected_numbers": bad}
 
 
 def answer_question(question: str) -> dict:
@@ -107,12 +151,8 @@ def answer_question(question: str) -> dict:
             "action": "FAIL",
         }
 
-    answer_text = generate_llm_answer(
-        question=question,
-        table_title=api_result["title"],
-        table_id=api_result["table_id"],
-        facts_summary=api_result["summary"],
-    )
+    verified = generate_verified_answer(question, api_result)
+    answer_text = verified["answer"]
 
     action_type = "FETCH_SPECIFIC" if any(char.isdigit() for char in question) else "FETCH_LATEST"
     model_prompt = (
@@ -139,6 +179,8 @@ def answer_question(question: str) -> dict:
         "query_used": api_result.get("query_used", []),
         "structured_data": api_result.get("structured_data", []),
         "computed": api_result.get("computed", {}),
+        "guard": verified["guard"],
+        "rejected_numbers": verified["rejected_numbers"],
     }
 
 

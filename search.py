@@ -47,12 +47,29 @@ REYKJAVIK_WHOLE_PATTERNS = [r"\bi heild\b", r"\bekki bara\b", r"\bekki adeins\b"
 POPULATION_WORDS = ["bua", "ibua", "mannfjold", "population", "inhabitants", "live in"]
 
 
+# Lyklar sem eru heiti sveitarfélagsins sjálfs. Allir aðrir lyklar eru bæir eða eldri sveitarfélög
+# sem eru aðeins hluti af stærra sveitarfélagi, og Hagstofan birtir ekki sér tölur fyrir þá í MAN02005.
+CURRENT_MUNICIPALITY_PATTERNS = {
+    r"\bmulathing", r"\bsudurnesjab", r"\breykjanesb", r"\bgrindavik", r"\bvog(ar|um)\b", r"\bkopavog",
+    r"\bhafnar(fj|fir)", r"\bgardab", r"\bmosfellsb", r"\bseltjarnarnes", r"\bakranes", r"\bborgarbyggd",
+    r"\bisa(fj|fir)", r"\bakureyr", r"\bdalvik", r"\bhorna(fj|fir)", r"\bvestmannaey", r"\bhveragerd",
+}
+
+
 def resolve_municipality(normalized_question: str) -> str | None:
     """Skilar heiti sveitarfélags í MAN02005 ef spurningin nefnir þekkt (gamalt eða nýtt) staðarheiti."""
     for pattern, name in MUNICIPALITY_ALIASES.items():
         if re.search(pattern, normalized_question):
             return name
     return None
+
+
+def is_part_of_larger_municipality(normalized_question: str) -> bool:
+    """True ef spurt er um bæ eða eldra sveitarfélag (t.d. Seyðisfjörð) sem tölur eru ekki birtar sér fyrir."""
+    for pattern in MUNICIPALITY_ALIASES:
+        if re.search(pattern, normalized_question):
+            return pattern not in CURRENT_MUNICIPALITY_PATTERNS
+    return False
 
 
 def normalize(text: str) -> str:
