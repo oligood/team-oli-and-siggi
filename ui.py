@@ -44,6 +44,17 @@ st.markdown("""
         font-family: 'Lora', Georgia, 'Times New Roman', serif;
     }
 
+    /* Ósýnilegir <style>-kubbar mega ekki taka pláss (bil efst fyrir ofan haus) */
+    [data-testid="stElementContainer"]:has(style) {
+        display: none !important;
+    }
+
+    /* Hausinn er aðeins breiðari en skjárinn og afgangurinn klipptur af,
+       svo engin rönd sjáist til hliðanna óháð skrunstiku */
+    [data-testid="stAppScrollToBottomContainer"] {
+        overflow-x: hidden !important;
+    }
+
     .block-container,
     .stMainBlockContainer {
         padding-top: 0 !important;
@@ -59,10 +70,8 @@ st.markdown("""
         padding: 4rem 2rem 3rem 2rem;
         text-align: center;
         border-bottom: 3px solid #C5A059;
-        width: 100vw;
-        position: relative;
-        left: 50%;
-        margin-left: -50vw;
+        width: calc(100vw + 40px);
+        margin-left: calc(50% - 50vw - 20px);
         margin-top: 0;
         box-sizing: border-box;
     }
@@ -289,7 +298,10 @@ if _marble.exists():
     st.markdown(
         "<style>.chat-msg { background-image: "
         "linear-gradient(rgba(244,238,228,0.35), rgba(232,224,210,0.35)), "
-        f"url('data:image/jpeg;base64,{_b64}'); }}</style>",
+        f"url('data:image/jpeg;base64,{_b64}'); }}"
+        ".chat-msg.assistant { background-image: "
+        "linear-gradient(rgba(214,200,176,0.45), rgba(200,184,158,0.45)), "
+        f"url('data:image/jpeg;base64,{_b64}'); border-color: #BFB09A; }}</style>",
         unsafe_allow_html=True,
     )
 
