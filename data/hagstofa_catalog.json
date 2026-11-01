@@ -1,0 +1,602 @@
+[
+  {
+    "id": "THJ07000",
+    "title": "Þjóðhagsspá 2025-2031",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Efnahagur/thjodhagsspa/THJ07000.px",
+    "category": "Efnahagur"
+  },
+  {
+    "id": "THJ07100",
+    "title": "Hagvísar þjóðhagsspár 1998-2024",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Efnahagur/thjodhagsspa/THJ07100.px",
+    "category": "Efnahagur"
+  },
+  {
+    "id": "MAN09010",
+    "title": "Spá um mannfjölda eftir kyni og aldri 2026-2075",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Ibuar/mannfjoldaspa/MAN09010.px",
+    "category": "Ibuar"
+  },
+  {
+    "id": "MAN09012",
+    "title": "Spá um mannfjölda eftir helstu þáttum 2026-2075",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Ibuar/mannfjoldaspa/MAN09012.px",
+    "category": "Ibuar"
+  },
+  {
+    "id": "SOG14010",
+    "title": "Vísitala byggingarkostnaðar, árleg meðaltöl 1900-2019",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_byggingaridnadur/SOG14010.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG14011",
+    "title": "Vísitala byggingarkostnaðar eftir mánuðum 1938-2021",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_byggingaridnadur/SOG14011.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG14012",
+    "title": "Bygging íbúðarhúsa á öllu landinu 1970-2020",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_byggingaridnadur/SOG14012.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG10100",
+    "title": "Fæddir eftir mánuðum 1853-2020",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_faeddirogdanir/SOG10100.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG10101",
+    "title": "Lifandi fæddir eftir kyni og hjúskaparstöðu móður 1838-2020",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_faeddirogdanir/SOG10101.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG10102",
+    "title": "Lifandi fædd börn eftir aldursflokki móður og hjúskaparstétt 1853-2020",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_faeddirogdanir/SOG10102.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG10102b",
+    "title": "Meðal-, mið og tíðasti aldur mæðra og feðra 1961-2020",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_faeddirogdanir/SOG10102b.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG10103",
+    "title": "Fæðingartíðni 1853-2020",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_faeddirogdanir/SOG10103.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG10103b",
+    "title": "Fjöldi einbura- og fjölburafæðinga 1850-2020",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_faeddirogdanir/SOG10103b.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG10104",
+    "title": "Frjósemi og fólksfjölgunarhlutfall 1853-2020",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_faeddirogdanir/SOG10104.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG10105",
+    "title": "Lifandi og andvana fæddir eftir kyni 1951-2020",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_faeddirogdanir/SOG10105.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG10106",
+    "title": "Ungbarnadauði og andvana fædd börn 1838-2020",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_faeddirogdanir/SOG10106.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG10107",
+    "title": "Dánir og dánartíðni 1841-2020",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_faeddirogdanir/SOG10107.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG10108",
+    "title": "Dánir eftir sveitarfélögum, kyni og aldri 1981-2020",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_faeddirogdanir/SOG10108.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG03001",
+    "title": "Farþegar og ökutæki með bílferjum til landsins 1981-2017",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_ferdathjonusta/SOG03001.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG03002",
+    "title": "Farþegar með skemmtiferðaskipum til landsins 1971-2017",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_ferdathjonusta/SOG03002.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG03003",
+    "title": "Íslenskir og erlendir farþegar til landsins eftir tegund farartækja 1947-2017",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_ferdathjonusta/SOG03003.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG03004",
+    "title": "Farþegar til landsins eftir ríkisfangslandi 1947-2000",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_ferdathjonusta/SOG03004.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG03005",
+    "title": "Farþegar til landsins um Keflavíkurflugvöll eftir þjóðerni 2003-2020",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_ferdathjonusta/SOG03005.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG11001",
+    "title": "Helstu hagstærðir hins opinbera 1980-2020",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_fjarmalhinsopinbera/SOG11001.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG11002",
+    "title": "Tekju-, gjalda- og fjárstreymisreikningar hins opinbera 1980-2020",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_fjarmalhinsopinbera/SOG11002.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG11003",
+    "title": "Helstu hagstærðir ríkissjóðs 1980-2020",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_fjarmalhinsopinbera/SOG11003.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG11004",
+    "title": "Tekju-, gjalda- og fjárstreymisreikningar ríkissjóðs 1980-2020",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_fjarmalhinsopinbera/SOG11004.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG11005",
+    "title": "Helstu hagstærðir sveitarfélaga 1980-2020",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_fjarmalhinsopinbera/SOG11005.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG11006",
+    "title": "Tekju-, gjalda- og fjárstreymisreikningar sveitarfélaga 1980-2020",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_fjarmalhinsopinbera/SOG11006.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG11007",
+    "title": "Tekju-, gjalda-, og fjárstreymisreikningar almannatrygginga 1980-2020",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_fjarmalhinsopinbera/SOG11007.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG02000",
+    "title": "Brúðhjón eftir fyrri hjúskaparstöðu og einstökum aldursárum 1951-2011",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_giftingarogskilnadir/SOG02000.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG02003",
+    "title": "Hjónavígslur 1771-2020",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_giftingarogskilnadir/SOG02003.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG02004",
+    "title": "Hjónavígslur eftir vígslumáta 1916-2020",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_giftingarogskilnadir/SOG02004.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG02005",
+    "title": "Hjónavígslur eftir gagnkvæmri hjúskaparstöðu brúðhjóna fyrir hjónavígslu ár hvert 1838-2011",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_giftingarogskilnadir/SOG02005.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG02006",
+    "title": "Hjónavígslur eftir aldri brúðhjóna ár hvert 1853-2011",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_giftingarogskilnadir/SOG02006.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG02007",
+    "title": "Aldursbundin giftingartíðni 1853-2011",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_giftingarogskilnadir/SOG02007.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG02008",
+    "title": "Meðalaldur, miðaldur og tíðasti aldur brúðhjóna eftir fyrri hjúskaparstöðu 1853-2020",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_giftingarogskilnadir/SOG02008.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG02101",
+    "title": "Lok hjúskapar og skilnaðir að borði og sæng 1850-2020",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_giftingarogskilnadir/SOG02101.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG13000",
+    "title": "Alþingiskosningar, forsetakjör og þjóðaratkvæðagreiðslur 1874-2024",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_kosningar/SOG13000.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG13001",
+    "title": "Kosningaþátttaka í alþingiskosningum 1874-2017",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_kosningar/SOG13001.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG13002",
+    "title": "Úrslit alþingiskosninga 1963-2017",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_kosningar/SOG13002.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG13004",
+    "title": "Kosningaþátttaka við forsetakjör 1952-2016",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_kosningar/SOG13004.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG13005",
+    "title": "Úrslit forsetakjörs eftir frambjóðendum og kjördæmum 1952-1996",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_kosningar/SOG13005.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG13006",
+    "title": "Kosningaþátttaka í sveitarstjórnarkosningum 1938-2018",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_kosningar/SOG13006.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG13006a",
+    "title": "Frambjóðendur og kjörnir fulltrúar í sveitarstjórnarkosningum 1950-2018",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_kosningar/SOG13006a.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG13007",
+    "title": "Kjörnir sveitarstjórnarmenn eftir kyni og aldri 1958-2018",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_kosningar/SOG13007.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG13008",
+    "title": "Kosningaþátttaka í borgarstjórnarkosningum i Reykjavík 1908-2018",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_kosningar/SOG13008.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG13009",
+    "title": "Úrslit borgarstjórnakosninga í Reykjavík 1930-2018",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_kosningar/SOG13009.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG13010",
+    "title": "Kosningaþátttaka í þjóðaratkvæðagreiðslum 1918-2012",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_kosningar/SOG13010.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG13011",
+    "title": "Úrslit í þjóðaratkvæðagreiðslum 1908-2011",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_kosningar/SOG13011.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG04001",
+    "title": "Heildarfjöldi búfjár eftir tegundum 1703-2023",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_landbunadur/SOG04001.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG04002",
+    "title": "Nautgripir skipt eftir tegundum 1703-2020",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_landbunadur/SOG04002.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG04003",
+    "title": "Sauðfé skipt eftir tegundum 1703-2020",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_landbunadur/SOG04003.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG04004",
+    "title": "Hross skipt eftir tegundum 1703-2020",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_landbunadur/SOG04004.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG04005",
+    "title": "Fiðurfé skipt eftir tegundum 1919-2020",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_landbunadur/SOG04005.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG04006",
+    "title": "Uppskera grænmetis, korns, garðávaxta og heyfengur 1882-2020",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_landbunadur/SOG04006.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG04010",
+    "title": "Laxveiði eftir veiðiaðferð 1974-2020",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_landbunadur/SOG04010.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "XLAN10201",
+    "title": "Kjötframleiðsla eftir tegundum frá 1983",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_landbunadur/XLAN10201.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG01001",
+    "title": "Mannfjöldi eftir kyni, einstökum aldursárum og hjúskaparstöðu 1901-2020.",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_mannfjoldi/SOG01001.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG01002",
+    "title": "Mannfjöldi eftir kyni, einstökum aldursárum og hjúskaparstöðu 1901-2020, ýtarleg",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_mannfjoldi/SOG01002.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG01010",
+    "title": "Mannfjöldi í einstökum byggðakjörnum og strjálbýli 1880-2020. Árslokatölur",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_mannfjoldi/SOG01010.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG01011",
+    "title": "Yfirlit um mannfjölda í byggðakjörnum og strjálbýli 1880-2020. Árslokatölur",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_mannfjoldi/SOG01011.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG01012",
+    "title": "Yfirlit um mannfjölda í byggðakjörnum eftir stærð 1880-2020. Árslokatölur",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_mannfjoldi/SOG01012.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG01021",
+    "title": "Lykiltölur mannfjöldans 1703-2021",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_mannfjoldi/SOG01021.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG01022",
+    "title": "Mannfjöldi eftir kyni og aldri 1841-2021",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_mannfjoldi/SOG01022.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG01023",
+    "title": "Meðalaldur Íslendinga 1841-2021",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_mannfjoldi/SOG01023.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG01024",
+    "title": "Meðalmannfjöldi eftir kyni og aldri 1841-2020",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_mannfjoldi/SOG01024.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG01025",
+    "title": "Framfærsluhlutfall 1951-2021",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_mannfjoldi/SOG01025.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG01026",
+    "title": "Erlendir ríkisborgarar 1950-2021",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_mannfjoldi/SOG01026.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG01027",
+    "title": "Búferlaflutningar milli landa eftir kyni og ríkisfangi 1961-2020",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_mannfjoldi/SOG01027.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG01031",
+    "title": "Íbúar einstakra sveitarfélaga 1910-2020 - Sveitarfélagaskipan hvers árs. Árslokatölur",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_mannfjoldi/SOG01031.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG01032",
+    "title": "Sveitarfélög eftir stærð 1910-2020 - Sveitarfélagaskipan hvers árs. Árslokatölur",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_mannfjoldi/SOG01032.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG15000",
+    "title": "Bókaútgáfa, fjöldi binda 1965-2000",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_menningogmidlun/SOG15000.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG15001",
+    "title": "Útgefnar bækur 1999-2019",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_menningogmidlun/SOG15001.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG15003",
+    "title": "Útgáfa blaða 1965-2009",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_menningogmidlun/SOG15003.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG15004",
+    "title": "Útbreiðsla dagblaða 1906-2010",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_menningogmidlun/SOG15004.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG15005",
+    "title": "Útbreiðsla dagblaða eftir titlum 1906-2010",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_menningogmidlun/SOG15005.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG15007",
+    "title": "Hljóðvarpsstöðvar og dagskrárrásir hljóðvarps 1926-2011",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_menningogmidlun/SOG15007.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG15008",
+    "title": "Útsendingartími Ríkisútvarpsins - Hljóðvarps 1932-2010",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_menningogmidlun/SOG15008.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG15009",
+    "title": "Leiksvið, sætaframboð, uppfærslur, sýningar og gestir leikhúsa 1930-2020",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_menningogmidlun/SOG15009.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG15010",
+    "title": "Uppfærslur, sýningar og gestir leikhúsa eftir tegund verka 1930-2020",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_menningogmidlun/SOG15010.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG15011",
+    "title": "Tónleikahald Sinfóníuhljómsveitar Íslands 1965-2020",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_menningogmidlun/SOG15011.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG15012",
+    "title": "Frumsýndar langar leiknar kvikmyndir eftir framleiðandalandi/svæði 1965-2019",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_menningogmidlun/SOG15012.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG07001",
+    "title": "Brautskráðir stúdentar 1847-2025",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_menntun/SOG07001.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG08008",
+    "title": "Meðalsölugengi Bandaríkjadals, SDR og evru eftir mánuðum 1971-2020",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_peningamal/SOG08008.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG08009",
+    "title": "Sölugengi erlends gjaldeyris 1913-2019. Árleg meðaltöl",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_peningamal/SOG08009.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG08010",
+    "title": "Mánaðarlegt sölugengi erlends gjaldeyris 1922-2020",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_peningamal/SOG08010.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG18001",
+    "title": "Vextir Landsbanka Íslands og Landsbankans 1886-2020",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_peningamal/SOG18001.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG18002",
+    "title": "Greiðslujöfnuður við útlönd 1938-2020",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_peningamal/SOG18002.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG18003",
+    "title": "Helstu peningastærðir 1886-2020",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_peningamal/SOG18003.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG18004",
+    "title": "Innlán innlánsstofnana 1886-2020",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_peningamal/SOG18004.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG18005",
+    "title": "Löng erlend lán 1922-2020",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_peningamal/SOG18005.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG18006",
+    "title": "Skráð sölugengi erlends gjaldeyris, gullgildi og raungengi íslenskrar krónu 1914-2020",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_peningamal/SOG18006.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG18007",
+    "title": "Úr reikningum Seðlabanka Íslands 1960-2020",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_peningamal/SOG18007.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG18008",
+    "title": "Útlán innlánsstofnana 1886-2020",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_peningamal/SOG18008.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG18009",
+    "title": "Vegnir meðalársvextir innlánsstofnana 1960-2020",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_peningamal/SOG18009.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG17000",
+    "title": "Ökutæki á skrá og nýskráning þeirra 1924-2020",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_samgongurogfjarskipti/SOG17000.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG17001",
+    "title": "Umferðarslys 1981-2020",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_samgongurogfjarskipti/SOG17001.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG17002",
+    "title": "Skráð loftför 1984-2019",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_samgongurogfjarskipti/SOG17002.px",
+    "category": "Sogulegar"
+  },
+  {
+    "id": "SOG17003",
+    "title": "Notendalínur í almenna símanetinu 1965-2020",
+    "url": "https://px.hagstofa.is/pxis/api/v1/is/Sogulegar/sogul_samgongurogfjarskipti/SOG17003.px",
+    "category": "Sogulegar"
+  }
+]

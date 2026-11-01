@@ -5,4 +5,6 @@ __pycache__/
 .env
 chroma_db/
 local/
-data/
+data/*
+!data/hagstofa_catalog.json
+!data/catalog_embeddings.pt
